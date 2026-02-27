@@ -24,4 +24,17 @@ public class UuidCodecIT extends CodecITBase {
     void uuidNull() throws Exception {
         assertNull(roundTrip(Codec.UUID, "uuid", null));
     }
+
+
+    @Test
+    void uuidOid() throws Exception {
+        assertOid(Codec.UUID, "uuid");
+    }
+
+    @Test
+    void uuidBinary() throws Exception {
+        assertBinaryRoundTrip(Codec.UUID, "uuid", UUID.fromString("550e8400-e29b-41d4-a716-446655440000"));
+        assertBinaryRoundTrip(Codec.UUID, "uuid", UUID.randomUUID());
+    }
+
 }

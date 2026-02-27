@@ -11,4 +11,16 @@ public class LsegCodecIT extends CodecITBase {
         var result = roundTrip(Codec.LSEG, "lseg", lseg);
         assertNotNull(result);
     }
+
+
+    @Test
+    void lsegOid() throws Exception {
+        assertOid(Codec.LSEG, "lseg");
+    }
+
+    @Test
+    void lsegBinary() throws Exception {
+        assertBinaryRoundTrip(Codec.LSEG, "lseg", new org.postgresql.geometric.PGlseg(0, 0, 1, 1));
+    }
+
 }

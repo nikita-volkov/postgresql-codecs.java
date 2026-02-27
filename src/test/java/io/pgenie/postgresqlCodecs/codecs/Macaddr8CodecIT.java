@@ -16,4 +16,16 @@ public class Macaddr8CodecIT extends CodecITBase {
     void macaddr8Null() throws Exception {
         assertNull(roundTrip(Codec.MACADDR8, "macaddr8", null));
     }
+
+
+    @Test
+    void macaddr8Oid() throws Exception {
+        assertOid(Codec.MACADDR8, "macaddr8");
+    }
+
+    @Test
+    void macaddr8Binary() throws Exception {
+        assertBinaryRoundTrip(Codec.MACADDR8, "macaddr8", "08:00:2b:ff:fe:01:02:03");
+    }
+
 }

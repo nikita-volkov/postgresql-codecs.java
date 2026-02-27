@@ -21,4 +21,11 @@ public class JsonbCodecIT extends CodecITBase {
     void jsonbNull() throws Exception {
         assertNull(roundTrip(Codec.JSONB, "jsonb", null));
     }
+
+
+    @Test
+    void jsonbOid() throws Exception {
+        assertOid(Codec.JSONB, "jsonb");
+    }
+
 }

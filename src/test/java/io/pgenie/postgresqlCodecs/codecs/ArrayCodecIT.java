@@ -306,4 +306,41 @@ public class ArrayCodecIT extends CodecITBase {
         var result = codec.parse(sb.toString(), 0);
         assertEquals(input, result.value);
     }
+
+
+    @Test
+    void arrayInt4BinaryRoundTrip() throws Exception {
+        var codec = new ArrayCodec<>("_int4", Codec.INT4);
+        var list = java.util.List.of(1, 2, 3, -100, Integer.MAX_VALUE);
+        byte[] encoded = codec.encode(list);
+        assertEquals(list, codec.decodeBinary(wrap(encoded), encoded.length));
+    }
+
+    @Test
+    void arrayTextBinaryRoundTrip() throws Exception {
+        var codec = new ArrayCodec<>("_text", Codec.TEXT);
+        var list = java.util.List.of("hello", "world", "Unicode: \u4e2d\u6587");
+        byte[] encoded = codec.encode(list);
+        assertEquals(list, codec.decodeBinary(wrap(encoded), encoded.length));
+    }
+
+    @Test
+    void arrayWithNullBinaryRoundTrip() throws Exception {
+        var codec = new ArrayCodec<>("_int4", Codec.INT4);
+        var list = new java.util.ArrayList<Integer>();
+        list.add(1);
+        list.add(null);
+        list.add(3);
+        byte[] encoded = codec.encode(list);
+        assertEquals(list, codec.decodeBinary(wrap(encoded), encoded.length));
+    }
+
+    @Test
+    void arrayEmptyBinaryRoundTrip() throws Exception {
+        var codec = new ArrayCodec<>("_int4", Codec.INT4);
+        var list = java.util.List.<Integer>of();
+        byte[] encoded = codec.encode(list);
+        assertEquals(list, codec.decodeBinary(wrap(encoded), encoded.length));
+    }
+
 }

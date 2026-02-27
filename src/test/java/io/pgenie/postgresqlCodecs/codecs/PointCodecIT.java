@@ -18,4 +18,17 @@ public class PointCodecIT extends CodecITBase {
     void pointNull() throws Exception {
         assertNull(roundTrip(Codec.POINT, "point", null));
     }
+
+
+    @Test
+    void pointOid() throws Exception {
+        assertOid(Codec.POINT, "point");
+    }
+
+    @Test
+    void pointBinary() throws Exception {
+        assertBinaryRoundTrip(Codec.POINT, "point", new org.postgresql.geometric.PGpoint(1.5, -2.5));
+        assertBinaryRoundTrip(Codec.POINT, "point", new org.postgresql.geometric.PGpoint(0, 0));
+    }
+
 }

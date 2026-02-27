@@ -29,4 +29,24 @@ public class InetCodecIT extends CodecITBase {
     void inetNull() throws Exception {
         assertNull(roundTrip(Codec.INET, "inet", null));
     }
+
+
+    @Test
+    void inetOid() throws Exception {
+        assertOid(Codec.INET, "inet");
+    }
+
+    @Test
+    void inetIpv4Binary() throws Exception {
+        assertBinaryRoundTrip(Codec.INET, "inet", "192.168.1.1/32");
+        assertBinaryRoundTrip(Codec.INET, "inet", "10.0.0.0/8");
+        assertBinaryRoundTrip(Codec.INET, "inet", "0.0.0.0/0");
+    }
+
+    @Test
+    void inetIpv6Binary() throws Exception {
+        assertBinaryRoundTrip(Codec.INET, "inet", "::1/128");
+        assertBinaryRoundTrip(Codec.INET, "inet", "2001:db8::/32");
+    }
+
 }

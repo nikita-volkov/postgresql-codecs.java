@@ -11,4 +11,16 @@ public class BoxCodecIT extends CodecITBase {
         var result = roundTrip(Codec.BOX, "box", box);
         assertNotNull(result);
     }
+
+
+    @Test
+    void boxOid() throws Exception {
+        assertOid(Codec.BOX, "box");
+    }
+
+    @Test
+    void boxBinary() throws Exception {
+        assertBinaryRoundTrip(Codec.BOX, "box", new org.postgresql.geometric.PGbox(2, 2, 0, 0));
+    }
+
 }

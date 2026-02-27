@@ -30,4 +30,21 @@ public class NumericCodecIT extends CodecITBase {
     void numericNull() throws Exception {
         assertNull(roundTrip(Codec.NUMERIC, "numeric", null));
     }
+
+
+    @Test
+    void numericOid() throws Exception {
+        assertOid(Codec.NUMERIC, "numeric");
+    }
+
+    @Test
+    void numericBinary() throws Exception {
+        assertBinaryRoundTrip(Codec.NUMERIC, "numeric", java.math.BigDecimal.ZERO);
+        assertBinaryRoundTrip(Codec.NUMERIC, "numeric", new java.math.BigDecimal("1"));
+        assertBinaryRoundTrip(Codec.NUMERIC, "numeric", new java.math.BigDecimal("123456.789"));
+        assertBinaryRoundTrip(Codec.NUMERIC, "numeric", new java.math.BigDecimal("-0.00001"));
+        assertBinaryRoundTrip(Codec.NUMERIC, "numeric", new java.math.BigDecimal("99999999999.99"));
+        assertBinaryRoundTrip(Codec.NUMERIC, "numeric", new java.math.BigDecimal("0.1"));
+    }
+
 }

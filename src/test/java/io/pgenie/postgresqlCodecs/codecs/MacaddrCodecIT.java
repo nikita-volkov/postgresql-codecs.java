@@ -15,4 +15,17 @@ public class MacaddrCodecIT extends CodecITBase {
     void macaddrNull() throws Exception {
         assertNull(roundTrip(Codec.MACADDR, "macaddr", null));
     }
+
+
+    @Test
+    void macaddrOid() throws Exception {
+        assertOid(Codec.MACADDR, "macaddr");
+    }
+
+    @Test
+    void macaddrBinary() throws Exception {
+        assertBinaryRoundTrip(Codec.MACADDR, "macaddr", "08:00:2b:01:02:03");
+        assertBinaryRoundTrip(Codec.MACADDR, "macaddr", "ff:ff:ff:ff:ff:ff");
+    }
+
 }

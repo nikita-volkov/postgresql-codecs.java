@@ -15,4 +15,19 @@ public class VarbitCodecIT extends CodecITBase {
     void varbitNull() throws Exception {
         assertNull(roundTrip(Codec.VARBIT, "varbit", null));
     }
+
+
+    @Test
+    void varbitOid() throws Exception {
+        assertOid(Codec.VARBIT, "varbit");
+    }
+
+    @Test
+    void varbitBinary() throws Exception {
+        String value = "10110";
+        byte[] pgBytes = pgBinaryBytes(Codec.VARBIT, "varbit", value);
+        assertEquals(hex(pgBytes), hex(Codec.VARBIT.encode(value)));
+        assertEquals(value, Codec.VARBIT.decodeBinary(wrap(pgBytes), pgBytes.length));
+    }
+
 }

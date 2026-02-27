@@ -26,4 +26,18 @@ public class Float8CodecIT extends CodecITBase {
     void float8Null() throws Exception {
         assertNull(roundTrip(Codec.FLOAT8, "float8", null));
     }
+
+
+    @Test
+    void float8Oid() throws Exception {
+        assertOid(Codec.FLOAT8, "float8");
+    }
+
+    @Test
+    void float8Binary() throws Exception {
+        assertBinaryRoundTrip(Codec.FLOAT8, "float8", 0.0);
+        assertBinaryRoundTrip(Codec.FLOAT8, "float8", Math.PI);
+        assertBinaryRoundTrip(Codec.FLOAT8, "float8", -1.23456789e10);
+    }
+
 }

@@ -20,4 +20,21 @@ public class BoolCodecIT extends CodecITBase {
     void boolNull() throws Exception {
         assertNull(roundTrip(Codec.BOOL, "bool", null));
     }
+
+
+    @Test
+    void boolOid() throws Exception {
+        assertOid(Codec.BOOL, "bool");
+    }
+
+    @Test
+    void boolTrueBinary() throws Exception {
+        assertBinaryRoundTrip(Codec.BOOL, "bool", true);
+    }
+
+    @Test
+    void boolFalseBinary() throws Exception {
+        assertBinaryRoundTrip(Codec.BOOL, "bool", false);
+    }
+
 }

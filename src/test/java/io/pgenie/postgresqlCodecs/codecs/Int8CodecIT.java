@@ -20,4 +20,19 @@ public class Int8CodecIT extends CodecITBase {
     void int8Null() throws Exception {
         assertNull(roundTrip(Codec.INT8, "int8", null));
     }
+
+
+    @Test
+    void int8Oid() throws Exception {
+        assertOid(Codec.INT8, "int8");
+    }
+
+    @Test
+    void int8Binary() throws Exception {
+        assertBinaryRoundTrip(Codec.INT8, "int8", 0L);
+        assertBinaryRoundTrip(Codec.INT8, "int8", 9876543210L);
+        assertBinaryRoundTrip(Codec.INT8, "int8", -9876543210L);
+        assertBinaryRoundTrip(Codec.INT8, "int8", Long.MAX_VALUE);
+    }
+
 }

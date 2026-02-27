@@ -26,4 +26,19 @@ public class TextCodecIT extends CodecITBase {
     void textNull() throws Exception {
         assertNull(roundTrip(Codec.TEXT, "text", null));
     }
+
+
+    @Test
+    void textOid() throws Exception {
+        assertOid(Codec.TEXT, "text");
+    }
+
+    @Test
+    void textBinary() throws Exception {
+        assertBinaryRoundTrip(Codec.TEXT, "text", "");
+        assertBinaryRoundTrip(Codec.TEXT, "text", "hello");
+        assertBinaryRoundTrip(Codec.TEXT, "text", "Unicode: \u00e9\u4e2d\u6587");
+        assertBinaryRoundTrip(Codec.TEXT, "text", "line1\nline2");
+    }
+
 }

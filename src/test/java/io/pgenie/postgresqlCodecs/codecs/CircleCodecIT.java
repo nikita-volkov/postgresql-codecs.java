@@ -15,4 +15,18 @@ public class CircleCodecIT extends CodecITBase {
         assertEquals(circle.center.y, result.center.y, 0.0001);
         assertEquals(circle.radius, result.radius, 0.0001);
     }
+
+
+    @Test
+    void circleOid() throws Exception {
+        assertOid(Codec.CIRCLE, "circle");
+    }
+
+    @Test
+    void circleBinary() throws Exception {
+        assertBinaryRoundTrip(Codec.CIRCLE, "circle",
+                new org.postgresql.geometric.PGcircle(
+                        new org.postgresql.geometric.PGpoint(1.0, 2.0), 5.0));
+    }
+
 }

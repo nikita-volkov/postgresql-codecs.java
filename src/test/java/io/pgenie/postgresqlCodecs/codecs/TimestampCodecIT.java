@@ -24,4 +24,18 @@ public class TimestampCodecIT extends CodecITBase {
     void timestampNull() throws Exception {
         assertNull(roundTrip(Codec.TIMESTAMP, "timestamp", null));
     }
+
+
+    @Test
+    void timestampOid() throws Exception {
+        assertOid(Codec.TIMESTAMP, "timestamp");
+    }
+
+    @Test
+    void timestampBinary() throws Exception {
+        assertBinaryRoundTrip(Codec.TIMESTAMP, "timestamp", LocalDateTime.of(2000, 1, 1, 0, 0, 0));
+        assertBinaryRoundTrip(Codec.TIMESTAMP, "timestamp", LocalDateTime.of(2024, 6, 15, 12, 30, 45, 123456000));
+        assertBinaryRoundTrip(Codec.TIMESTAMP, "timestamp", LocalDateTime.of(1970, 1, 1, 0, 0, 0));
+    }
+
 }

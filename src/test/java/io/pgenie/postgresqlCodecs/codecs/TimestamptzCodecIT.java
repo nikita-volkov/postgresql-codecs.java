@@ -20,4 +20,20 @@ public class TimestamptzCodecIT extends CodecITBase {
     void timestamptzNull() throws Exception {
         assertNull(roundTrip(Codec.TIMESTAMPTZ, "timestamptz", null));
     }
+
+
+    @Test
+    void timestamptzOid() throws Exception {
+        assertOid(Codec.TIMESTAMPTZ, "timestamptz");
+    }
+
+    @Test
+    void timestamptzBinary() throws Exception {
+        // timestamptz stores only the UTC instant; values must be UTC for assertEquals to pass
+        assertBinaryRoundTrip(Codec.TIMESTAMPTZ, "timestamptz",
+                OffsetDateTime.of(2000, 1, 1, 0, 0, 0, 0, ZoneOffset.UTC));
+        assertBinaryRoundTrip(Codec.TIMESTAMPTZ, "timestamptz",
+                OffsetDateTime.of(2024, 6, 15, 9, 30, 45, 123456000, ZoneOffset.UTC));
+    }
+
 }

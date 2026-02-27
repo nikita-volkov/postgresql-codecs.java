@@ -15,4 +15,11 @@ public class CidrCodecIT extends CodecITBase {
     void cidrNull() throws Exception {
         assertNull(roundTrip(Codec.CIDR, "cidr", null));
     }
+
+
+    @Test
+    void cidrOid() throws Exception {
+        assertOid(Codec.CIDR, "cidr");
+    }
+
 }

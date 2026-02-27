@@ -18,4 +18,19 @@ public class DateCodecIT extends CodecITBase {
     void dateNull() throws Exception {
         assertNull(roundTrip(Codec.DATE, "date", null));
     }
+
+
+    @Test
+    void dateOid() throws Exception {
+        assertOid(Codec.DATE, "date");
+    }
+
+    @Test
+    void dateBinary() throws Exception {
+        assertBinaryRoundTrip(Codec.DATE, "date", LocalDate.of(2000, 1, 1));
+        assertBinaryRoundTrip(Codec.DATE, "date", LocalDate.of(1970, 1, 1));
+        assertBinaryRoundTrip(Codec.DATE, "date", LocalDate.of(2024, 12, 31));
+        assertBinaryRoundTrip(Codec.DATE, "date", LocalDate.of(1900, 6, 15));
+    }
+
 }

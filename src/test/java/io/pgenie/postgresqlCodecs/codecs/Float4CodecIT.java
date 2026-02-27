@@ -31,4 +31,18 @@ public class Float4CodecIT extends CodecITBase {
     void float4Null() throws Exception {
         assertNull(roundTrip(Codec.FLOAT4, "float4", null));
     }
+
+
+    @Test
+    void float4Oid() throws Exception {
+        assertOid(Codec.FLOAT4, "float4");
+    }
+
+    @Test
+    void float4Binary() throws Exception {
+        assertBinaryRoundTrip(Codec.FLOAT4, "float4", 0.0f);
+        assertBinaryRoundTrip(Codec.FLOAT4, "float4", 3.14f);
+        assertBinaryRoundTrip(Codec.FLOAT4, "float4", -1.5f);
+    }
+
 }

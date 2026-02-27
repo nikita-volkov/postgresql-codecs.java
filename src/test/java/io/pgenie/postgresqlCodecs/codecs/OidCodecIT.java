@@ -15,4 +15,11 @@ public class OidCodecIT extends CodecITBase {
     void oidNull() throws Exception {
         assertNull(roundTrip(Codec.OID, "oid", null));
     }
+
+
+    @Test
+    void oidOid() throws Exception {
+        assertOid(Codec.OID, "oid");
+    }
+
 }

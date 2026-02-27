@@ -29,4 +29,27 @@ public class ByteaCodecIT extends CodecITBase {
     void byteaNull() throws Exception {
         assertNull(roundTripText(Codec.BYTEA, "bytea", null));
     }
+
+
+    @Test
+    void byteaOid() throws Exception {
+        assertOid(Codec.BYTEA, "bytea");
+    }
+
+    @Test
+    void byteaBinary() throws Exception {
+        byte[] value = new byte[]{0x00, 0x01, (byte) 0xFF, (byte) 0xAB, 0x42};
+        byte[] pgBytes = pgBinaryBytes(Codec.BYTEA, "bytea", value);
+        assertArrayEquals(pgBytes, Codec.BYTEA.encode(value));
+        assertArrayEquals(value, Codec.BYTEA.decodeBinary(wrap(pgBytes), pgBytes.length));
+    }
+
+    @Test
+    void byteaEmptyBinary() throws Exception {
+        byte[] value = new byte[0];
+        byte[] pgBytes = pgBinaryBytes(Codec.BYTEA, "bytea", value);
+        assertArrayEquals(pgBytes, Codec.BYTEA.encode(value));
+        assertArrayEquals(value, Codec.BYTEA.decodeBinary(wrap(pgBytes), pgBytes.length));
+    }
+
 }

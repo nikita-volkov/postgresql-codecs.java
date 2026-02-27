@@ -24,4 +24,19 @@ public class TimeCodecIT extends CodecITBase {
     void timeNull() throws Exception {
         assertNull(roundTrip(Codec.TIME, "time", null));
     }
+
+
+    @Test
+    void timeOid() throws Exception {
+        assertOid(Codec.TIME, "time");
+    }
+
+    @Test
+    void timeBinary() throws Exception {
+        assertBinaryRoundTrip(Codec.TIME, "time", LocalTime.MIDNIGHT);
+        assertBinaryRoundTrip(Codec.TIME, "time", LocalTime.NOON);
+        assertBinaryRoundTrip(Codec.TIME, "time", LocalTime.of(13, 45, 30, 123456000));
+        assertBinaryRoundTrip(Codec.TIME, "time", LocalTime.of(23, 59, 59, 999999000));
+    }
+
 }

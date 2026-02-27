@@ -20,4 +20,18 @@ public class Int2CodecIT extends CodecITBase {
     void int2Null() throws Exception {
         assertNull(roundTrip(Codec.INT2, "int2", null));
     }
+
+
+    @Test
+    void int2Oid() throws Exception {
+        assertOid(Codec.INT2, "int2");
+    }
+
+    @Test
+    void int2Binary() throws Exception {
+        assertBinaryRoundTrip(Codec.INT2, "int2", (short) 0);
+        assertBinaryRoundTrip(Codec.INT2, "int2", (short) 32767);
+        assertBinaryRoundTrip(Codec.INT2, "int2", (short) -32768);
+    }
+
 }

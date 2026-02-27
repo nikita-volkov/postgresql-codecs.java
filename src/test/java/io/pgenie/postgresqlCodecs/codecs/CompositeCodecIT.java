@@ -247,4 +247,32 @@ public class CompositeCodecIT extends CodecITBase {
         assertNull(result.value.x());
         assertNull(result.value.y());
     }
+
+
+    @Test
+    void compositeBinaryRoundTrip() throws Exception {
+        record BinPoint(int x, int y) {}
+        var codec = new CompositeCodec<>("public", "mypoint",
+                (Integer x) -> (Integer y) -> new BinPoint(x, y),
+                new CompositeCodec.Field<>("x", BinPoint::x, Codec.INT4),
+                new CompositeCodec.Field<>("y", BinPoint::y, Codec.INT4));
+
+        var value = new BinPoint(7, -3);
+        byte[] encoded = codec.encode(value);
+        assertEquals(value, codec.decodeBinary(wrap(encoded), encoded.length));
+    }
+
+    @Test
+    void compositeWithNullFieldBinaryRoundTrip() throws Exception {
+        record BinNamed(String name, Integer count) {}
+        var codec = new CompositeCodec<>("public", "named",
+                (String name) -> (Integer count) -> new BinNamed(name, count),
+                new CompositeCodec.Field<>("name", BinNamed::name, Codec.TEXT),
+                new CompositeCodec.Field<>("count", BinNamed::count, Codec.INT4));
+
+        var value = new BinNamed("alice", null);
+        byte[] encoded = codec.encode(value);
+        assertEquals(value, codec.decodeBinary(wrap(encoded), encoded.length));
+    }
+
 }
