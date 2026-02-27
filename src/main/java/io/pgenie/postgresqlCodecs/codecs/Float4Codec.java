@@ -1,6 +1,7 @@
 package io.pgenie.postgresqlCodecs.codecs;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -70,7 +71,7 @@ final class Float4Codec implements Codec<Float> {
 
     @Override
     public byte[] encode(Float value) {
-        return Codec.allocate(4).putFloat(value).array();
+        return ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN).putFloat(value).array();
     }
 
     @Override

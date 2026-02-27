@@ -1,6 +1,7 @@
 package io.pgenie.postgresqlCodecs.codecs;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -73,7 +74,7 @@ final class InetCodec implements Codec<String> {
             throw new RuntimeException("Invalid inet address: " + addr, e);
         }
 
-        ByteBuffer buf = Codec.allocate(4 + addrBytes.length);
+        ByteBuffer buf = ByteBuffer.allocate(4 + addrBytes.length).order(ByteOrder.BIG_ENDIAN);
         buf.put(af);
         buf.put((byte) maskBits);
         buf.put((byte) 0); // is_cidr=0 for inet

@@ -1,6 +1,7 @@
 package io.pgenie.postgresqlCodecs.codecs;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -70,7 +71,7 @@ final class Float8Codec implements Codec<Double> {
 
     @Override
     public byte[] encode(Double value) {
-        return Codec.allocate(8).putDouble(value).array();
+        return ByteBuffer.allocate(8).order(ByteOrder.BIG_ENDIAN).putDouble(value).array();
     }
 
     @Override

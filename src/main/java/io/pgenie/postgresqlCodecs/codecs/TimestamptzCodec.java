@@ -1,6 +1,7 @@
 package io.pgenie.postgresqlCodecs.codecs;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -106,7 +107,7 @@ final class TimestamptzCodec implements Codec<OffsetDateTime> {
         long epochSecond = utc.toEpochSecond();
         int nanos = utc.getNano();
         long micros = epochSecond * 1_000_000L + nanos / 1000L - PG_EPOCH_MICROS;
-        return Codec.allocate(8).putLong(micros).array();
+        return ByteBuffer.allocate(8).order(ByteOrder.BIG_ENDIAN).putLong(micros).array();
     }
 
     @Override

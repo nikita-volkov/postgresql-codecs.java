@@ -1,6 +1,7 @@
 package io.pgenie.postgresqlCodecs.codecs;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -57,7 +58,7 @@ final class UuidCodec implements Codec<UUID> {
 
     @Override
     public byte[] encode(UUID value) {
-        ByteBuffer buf = Codec.allocate(16);
+        ByteBuffer buf = ByteBuffer.allocate(16).order(ByteOrder.BIG_ENDIAN);
         buf.putLong(value.getMostSignificantBits());
         buf.putLong(value.getLeastSignificantBits());
         return buf.array();

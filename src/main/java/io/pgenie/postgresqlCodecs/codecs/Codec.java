@@ -1,7 +1,6 @@
 package io.pgenie.postgresqlCodecs.codecs;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.sql.PreparedStatement;
 
 /**
@@ -63,6 +62,10 @@ public interface Codec<A> {
     // -----------------------------------------------------------------------
     // Type metadata
     // -----------------------------------------------------------------------
+
+    default String schema() {
+        return "";
+    }
 
     /**
      * Returns the PostgreSQL type name (e.g. {@code "int4"}, {@code "text"}).
@@ -171,18 +174,6 @@ public interface Codec<A> {
      */
     default A decodeBinary(ByteBuffer buf, int length) throws ParseException {
         throw new UnsupportedOperationException("Binary decoding not implemented for type: " + name());
-    }
-
-    // -----------------------------------------------------------------------
-    // Helpers
-    // -----------------------------------------------------------------------
-
-    /**
-     * Allocates a big-endian {@link ByteBuffer} of the given capacity.
-     * Convenience method for codec implementations.
-     */
-    static ByteBuffer allocate(int capacity) {
-        return ByteBuffer.allocate(capacity).order(ByteOrder.BIG_ENDIAN);
     }
 
     // -----------------------------------------------------------------------

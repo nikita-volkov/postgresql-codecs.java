@@ -1,6 +1,7 @@
 package io.pgenie.postgresqlCodecs.codecs;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.function.Function;
@@ -207,7 +208,7 @@ public final class CompositeCodec<Z> implements Codec<Z> {
             if (ef != null) totalSize += ef.length;
         }
 
-        ByteBuffer buf = Codec.allocate(totalSize);
+        ByteBuffer buf = ByteBuffer.allocate(totalSize).order(ByteOrder.BIG_ENDIAN);
         buf.putInt(fields.length);
 
         for (int i = 0; i < fields.length; i++) {

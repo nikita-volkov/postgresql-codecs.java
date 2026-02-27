@@ -1,5 +1,7 @@
 package io.pgenie.postgresqlCodecs.codecs;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -68,7 +70,7 @@ final class LineCodec implements Codec<PGline> {
 
     @Override
     public byte[] encode(PGline value) {
-        java.nio.ByteBuffer buf = Codec.allocate(24);
+        java.nio.ByteBuffer buf = ByteBuffer.allocate(24).order(ByteOrder.BIG_ENDIAN);
         buf.putDouble(value.a);
         buf.putDouble(value.b);
         buf.putDouble(value.c);

@@ -1,6 +1,7 @@
 package io.pgenie.postgresqlCodecs.codecs;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -70,7 +71,7 @@ final class TimeCodec implements Codec<LocalTime> {
     @Override
     public byte[] encode(LocalTime value) {
         long micros = value.toNanoOfDay() / 1000L;
-        return Codec.allocate(8).putLong(micros).array();
+        return ByteBuffer.allocate(8).order(ByteOrder.BIG_ENDIAN).putLong(micros).array();
     }
 
     @Override

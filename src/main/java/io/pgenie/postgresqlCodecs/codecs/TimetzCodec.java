@@ -1,6 +1,7 @@
 package io.pgenie.postgresqlCodecs.codecs;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.OffsetTime;
@@ -99,7 +100,7 @@ final class TimetzCodec implements Codec<OffsetTime> {
     public byte[] encode(OffsetTime value) {
         long micros = value.toLocalTime().toNanoOfDay() / 1000L;
         int pgTz = -value.getOffset().getTotalSeconds();
-        ByteBuffer buf = Codec.allocate(12);
+        ByteBuffer buf = ByteBuffer.allocate(12).order(ByteOrder.BIG_ENDIAN);
         buf.putLong(micros);
         buf.putInt(pgTz);
         return buf.array();

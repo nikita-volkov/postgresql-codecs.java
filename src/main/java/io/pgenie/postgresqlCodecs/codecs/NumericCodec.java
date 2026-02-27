@@ -1,5 +1,7 @@
 package io.pgenie.postgresqlCodecs.codecs;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -122,7 +124,7 @@ final class NumericCodec implements Codec<BigDecimal> {
             }
             if (firstNonZeroFracGroup == -1) {
                 // value is exactly zero
-                java.nio.ByteBuffer buf = Codec.allocate(8);
+                java.nio.ByteBuffer buf = ByteBuffer.allocate(8).order(ByteOrder.BIG_ENDIAN);
                 buf.putShort((short) 0); buf.putShort((short) 0);
                 buf.putShort((short) sign); buf.putShort((short) dscale);
                 return buf.array();
@@ -146,7 +148,7 @@ final class NumericCodec implements Codec<BigDecimal> {
             digits.remove(digits.size() - 1);
         }
 
-        java.nio.ByteBuffer buf = Codec.allocate(8 + digits.size() * 2);
+        java.nio.ByteBuffer buf = ByteBuffer.allocate(8 + digits.size() * 2).order(ByteOrder.BIG_ENDIAN);
         buf.putShort((short) digits.size());
         buf.putShort((short) weight);
         buf.putShort((short) sign);

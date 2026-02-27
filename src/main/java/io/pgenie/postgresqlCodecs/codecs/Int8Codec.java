@@ -1,6 +1,7 @@
 package io.pgenie.postgresqlCodecs.codecs;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -59,7 +60,7 @@ final class Int8Codec implements Codec<Long> {
 
     @Override
     public byte[] encode(Long value) {
-        return Codec.allocate(8).putLong(value).array();
+        return ByteBuffer.allocate(8).order(ByteOrder.BIG_ENDIAN).putLong(value).array();
     }
 
     @Override

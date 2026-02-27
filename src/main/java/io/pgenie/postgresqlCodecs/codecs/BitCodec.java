@@ -1,5 +1,7 @@
 package io.pgenie.postgresqlCodecs.codecs;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -42,7 +44,7 @@ final class BitCodec implements Codec<String> {
     public byte[] encode(String value) {
         int nbits = value.length();
         int nbytes = (nbits + 7) / 8;
-        java.nio.ByteBuffer buf = Codec.allocate(4 + nbytes);
+        java.nio.ByteBuffer buf = ByteBuffer.allocate(4 + nbytes).order(ByteOrder.BIG_ENDIAN);
         buf.putInt(nbits);
         for (int i = 0; i < nbytes; i++) {
             int b = 0;

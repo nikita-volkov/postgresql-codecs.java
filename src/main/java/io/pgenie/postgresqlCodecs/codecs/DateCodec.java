@@ -1,6 +1,7 @@
 package io.pgenie.postgresqlCodecs.codecs;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -59,7 +60,7 @@ final class DateCodec implements Codec<LocalDate> {
     @Override
     public byte[] encode(LocalDate value) {
         long pgDay = value.toEpochDay() - 10957L;
-        return Codec.allocate(4).putInt((int) pgDay).array();
+        return ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN).putInt((int) pgDay).array();
     }
 
     @Override

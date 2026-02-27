@@ -1,5 +1,7 @@
 package io.pgenie.postgresqlCodecs.codecs;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -70,7 +72,7 @@ final class PointCodec implements Codec<PGpoint> {
 
     @Override
     public byte[] encode(PGpoint value) {
-        java.nio.ByteBuffer buf = Codec.allocate(16);
+        java.nio.ByteBuffer buf = ByteBuffer.allocate(16).order(ByteOrder.BIG_ENDIAN);
         buf.putDouble(value.x);
         buf.putDouble(value.y);
         return buf.array();

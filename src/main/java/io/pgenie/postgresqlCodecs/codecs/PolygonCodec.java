@@ -1,5 +1,7 @@
 package io.pgenie.postgresqlCodecs.codecs;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -70,7 +72,7 @@ final class PolygonCodec implements Codec<PGpolygon> {
     @Override
     public byte[] encode(PGpolygon value) {
         int n = value.points.length;
-        java.nio.ByteBuffer buf = Codec.allocate(4 + n * 16);
+        java.nio.ByteBuffer buf = ByteBuffer.allocate(4 + n * 16).order(ByteOrder.BIG_ENDIAN);
         buf.putInt(n);
         for (org.postgresql.geometric.PGpoint p : value.points) {
             buf.putDouble(p.x);

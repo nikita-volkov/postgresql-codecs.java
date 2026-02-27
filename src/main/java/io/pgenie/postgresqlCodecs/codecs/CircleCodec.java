@@ -1,5 +1,7 @@
 package io.pgenie.postgresqlCodecs.codecs;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -68,7 +70,7 @@ final class CircleCodec implements Codec<PGcircle> {
 
     @Override
     public byte[] encode(PGcircle value) {
-        java.nio.ByteBuffer buf = Codec.allocate(24);
+        java.nio.ByteBuffer buf = ByteBuffer.allocate(24).order(ByteOrder.BIG_ENDIAN);
         buf.putDouble(value.center.x);
         buf.putDouble(value.center.y);
         buf.putDouble(value.radius);

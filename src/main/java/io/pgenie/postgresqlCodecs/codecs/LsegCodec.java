@@ -1,5 +1,7 @@
 package io.pgenie.postgresqlCodecs.codecs;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -67,7 +69,7 @@ final class LsegCodec implements Codec<PGlseg> {
 
     @Override
     public byte[] encode(PGlseg value) {
-        java.nio.ByteBuffer buf = Codec.allocate(32);
+        java.nio.ByteBuffer buf = ByteBuffer.allocate(32).order(ByteOrder.BIG_ENDIAN);
         buf.putDouble(value.point[0].x);
         buf.putDouble(value.point[0].y);
         buf.putDouble(value.point[1].x);

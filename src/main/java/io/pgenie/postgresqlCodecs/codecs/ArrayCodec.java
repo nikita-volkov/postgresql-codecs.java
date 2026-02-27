@@ -1,6 +1,7 @@
 package io.pgenie.postgresqlCodecs.codecs;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -235,7 +236,7 @@ public final class ArrayCodec<A> implements Codec<List<A>> {
         }
 
         // Header: ndims(4) + has_nulls(4) + oid(4) + dim_size(4) + lower_bound(4) = 20 bytes
-        ByteBuffer buf = Codec.allocate(20 + bodySize);
+        ByteBuffer buf = ByteBuffer.allocate(20 + bodySize).order(ByteOrder.BIG_ENDIAN);
         buf.putInt(1);                      // ndims
         buf.putInt(hasNulls ? 1 : 0);       // has_nulls
         buf.putInt(elemOid);                // element OID

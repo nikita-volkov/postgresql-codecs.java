@@ -1,5 +1,7 @@
 package io.pgenie.postgresqlCodecs.codecs;
 
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -74,7 +76,7 @@ final class PathCodec implements Codec<PGpath> {
     @Override
     public byte[] encode(PGpath value) {
         int n = value.points.length;
-        java.nio.ByteBuffer buf = Codec.allocate(1 + 4 + n * 16);
+        java.nio.ByteBuffer buf = ByteBuffer.allocate(1 + 4 + n * 16).order(ByteOrder.BIG_ENDIAN);
         buf.put(value.open ? (byte) 0 : (byte) 1);
         buf.putInt(n);
         for (org.postgresql.geometric.PGpoint p : value.points) {
