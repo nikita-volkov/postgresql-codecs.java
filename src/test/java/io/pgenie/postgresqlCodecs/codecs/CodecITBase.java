@@ -5,27 +5,23 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.junit.jupiter.api.AfterAll;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import org.junit.jupiter.api.BeforeAll;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
  * Base class for codec integration tests. Provides a shared PostgreSQL container
  * and helper methods for round-trip testing.
+ *
+ * The container is started once per JVM via a static initializer and cleaned up
+ * automatically by the TestContainers resource reaper (Ryuk) on JVM exit.
  */
 abstract class CodecITBase {
 
-    static PostgreSQLContainer<?> pg = new PostgreSQLContainer<>("postgres:18");
+    static final PostgreSQLContainer<?> pg;
 
-    @BeforeAll
-    static void startContainer() {
+    static {
+        pg = new PostgreSQLContainer<>("postgres:18");
         pg.start();
-    }
-
-    @AfterAll
-    static void stopContainer() {
-        pg.stop();
     }
 
     Connection connect() throws SQLException {
