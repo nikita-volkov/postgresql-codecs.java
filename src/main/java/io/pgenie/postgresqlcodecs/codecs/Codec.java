@@ -129,9 +129,7 @@ public interface Codec<A> {
      * @throws UnsupportedOperationException if binary encoding is not
      * implemented for this type
      */
-    default byte[] encode(A value) {
-        throw new UnsupportedOperationException("Binary encoding not implemented for type: " + name());
-    }
+    byte[] encode(A value);
 
     /**
      * Decodes a value from the PostgreSQL binary wire format.
@@ -151,9 +149,7 @@ public interface Codec<A> {
      * @throws UnsupportedOperationException if binary decoding is not
      * implemented for this type
      */
-    default A decodeBinary(ByteBuffer buf, int length) throws ParseException {
-        throw new UnsupportedOperationException("Binary decoding not implemented for type: " + name());
-    }
+     A decodeBinary(ByteBuffer buf, int length) throws ParseException;
 
     // -----------------------------------------------------------------------
     // Result / exception types
