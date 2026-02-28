@@ -1,58 +1,12 @@
 package io.pgenie.postgresqlcodecs.codecs;
 
-import java.util.stream.Stream;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-
 import io.pgenie.postgresqlcodecs.arbitrary.Arbitrary;
 import io.pgenie.postgresqlcodecs.types.Macaddr;
 
-public class MacaddrCodecIT extends CodecITBase {
+public class MacaddrCodecIT extends CodecSuite<Macaddr> {
 
-    private static final Macaddr VALUE_1
-            = new Macaddr((byte) 0x08, (byte) 0x00, (byte) 0x2b, (byte) 0x01, (byte) 0x02, (byte) 0x03);
-
-    @Test
-    void macaddrRoundTrip() throws Exception {
-        assertEquals(VALUE_1, roundTrip(Macaddr.CODEC, VALUE_1));
+    public MacaddrCodecIT() {
+        super(Macaddr.CODEC, Arbitrary.MACADDR, Macaddr.class);
     }
-
-    @Test
-    void macaddrNull() throws Exception {
-        assertNull(roundTrip(Macaddr.CODEC, null));
-    }
-
-    @Test
-    void macaddrOid() throws Exception {
-        assertOid(Macaddr.CODEC);
-    }
-
-    @Test
-    void macaddrBinary() throws Exception {
-        assertBinaryRoundTrip(Macaddr.CODEC, VALUE_1);
-        assertBinaryRoundTrip(Macaddr.CODEC,
-                new Macaddr((byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff));
-    }
-
-    @ParameterizedTest
-    @MethodSource("factory")
-    void macaddrPropertyRoundTrip(Macaddr value) throws Exception {
-        assertEquals(value, roundTrip(Macaddr.CODEC, value));
-    }
-
-    @ParameterizedTest
-    @MethodSource("factory")
-    void macaddrPropertyBinaryRoundTrip(Macaddr value) throws Exception {
-        assertBinaryRoundTrip(Macaddr.CODEC, value);
-    }
-
-    static Stream<Arguments> factory() {
-        return Arbitrary.samples(Arbitrary.MACADDR);
-    }
-
+    
 }
