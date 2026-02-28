@@ -1,11 +1,8 @@
 package io.pgenie.postgresqlcodecs.codecs;
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
+import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.postgresql.util.PGobject;
 
 public final class EnumCodec<E> implements Codec<E> {
 
@@ -20,6 +17,11 @@ public final class EnumCodec<E> implements Codec<E> {
         this.pgLabels = pgLabels;
         this.byPgLabel = new HashMap<>(pgLabels.size() * 2);
         pgLabels.forEach((constant, label) -> byPgLabel.put(label, constant));
+    }
+
+    @Override
+    public String schema() {
+        return schema;
     }
 
     @Override
@@ -43,13 +45,15 @@ public final class EnumCodec<E> implements Codec<E> {
     }
 
     @Override
-    public void bind(PreparedStatement ps, int index, E value) throws SQLException {
-        PGobject obj = new PGobject();
-        obj.setType(pgName);
-        if (value != null) {
-            obj.setValue(pgLabels.get(value));
-        }
-        ps.setObject(index, obj);
+    public byte[] encode(E value) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'encode'");
+    }
+
+    @Override
+    public E decodeBinary(ByteBuffer buf, int length) throws ParseException {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'decodeBinary'");
     }
 
 }
