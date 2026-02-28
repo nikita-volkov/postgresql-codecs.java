@@ -1,5 +1,6 @@
 package io.pgenie.postgresqlcodecs.codecs;
 
+import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.function.Function;
 
@@ -93,18 +94,28 @@ public interface Codec<A> {
   // Binary wire format
   // -----------------------------------------------------------------------
   /**
-   * Encodes the given non-null value into the PostgreSQL binary wire format.
+   * Encodes the given non-null value into the PostgreSQL binary wire format, appending the bytes
+   * directly to {@code out}.
    *
-   * <p>The returned byte array holds exactly the binary payload for the value — no length prefix.
-   * The caller (e.g. {@link ArrayCodec} or {@link CompositeCodec}) is responsible for prepending
-   * the 4-byte {@code int32} length header required by the PostgreSQL composite and array binary
-   * protocols.
+   * <p>Appends exactly the binary payload for the value — no length prefix. The caller (e.g. {@link
+   * CompositeCodec}) is responsible for prepending the 4-byte {@code int32} length header required
+   * by the PostgreSQL composite and array binary protocols.
    *
    * <p>The byte order is always <b>big-endian</b>, as required by the PostgreSQL wire protocol.
    *
    * @throws UnsupportedOperationException if binary encoding is not implemented for this type
    */
-  byte[] encode(A value);
+  void encode(A value, ByteArrayOutputStream out);
+
+  /**
+   * Convenience overload that encodes the value into a freshly-allocated byte array and returns it.
+   * Delegates to {@link #encode(Object, ByteArrayOutputStream)}.
+   */
+  default byte[] encode(A value) {
+    var out = new ByteArrayOutputStream();
+    encode(value, out);
+    return out.toByteArray();
+  }
 
   /**
    * Decodes a value from the PostgreSQL binary wire format.
@@ -127,10 +138,10 @@ public interface Codec<A> {
    * functions. The returned codec encodes and decodes values of type B by delegating to this codec
    * for the underlying A values.
    *
-   * @param <B>
-   * @param to
-   * @param from
-   * @return
+   * @param <B> the target value type
+   * @param to function mapping from A to B
+   * @param from function mapping from B back to A
+   * @return a new codec for values of type B
    */
   default <B> Codec<B> map(Function<A, B> to, Function<B, A> from) {
     return new MappedCodec<>(this, to, from);
@@ -139,6 +150,7 @@ public interface Codec<A> {
   // -----------------------------------------------------------------------
   // Result / exception types
   // -----------------------------------------------------------------------
+  /** Holds the parsed value together with the offset of the first unconsumed character. */
   final class ParsingResult<A> {
 
     public final A value;
@@ -150,6 +162,7 @@ public interface Codec<A> {
     }
   }
 
+  /** Thrown when a text or binary value cannot be parsed into the expected type. */
   final class ParseException extends Exception {
 
     public ParseException(CharSequence input, int offset, String message) {

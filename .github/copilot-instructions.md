@@ -12,6 +12,8 @@ Use the Haskell library at master (https://github.com/nikita-volkov/postgresql-t
 
 Study its past version (https://github.com/nikita-volkov/postgresql-types/tree/ebadd76c7bc55a3dcc777c89cc404f8ca3c5dbf3) to learn the sketches of a technique of assembling the scalar encoders into composites and arrays. Also study the https://github.com/nikita-volkov/hasql codebase to see a similar but less well abstracted technique, which however is production-tested.
 
+Study https://www.npgsql.org/doc/dev/type-representations.html for a sort of a spec on the binary data format.
+
 # Testing
 
 Use quickcheck (https://github.com/pholser/junit-quickcheck) and testcontainers to test codecs against a real PostgreSQL instance and simulate various edge cases.

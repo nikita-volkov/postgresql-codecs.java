@@ -1,8 +1,8 @@
 package io.pgenie.postgresqlcodecs.types;
 
 import io.pgenie.postgresqlcodecs.codecs.Codec;
+import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.Random;
 
 /**
@@ -82,30 +82,42 @@ public sealed interface Inet permits Inet.V4, Inet.V6 {
         }
 
         @Override
-        public byte[] encode(Inet value) {
-          return switch (value) {
+        public void encode(Inet value, ByteArrayOutputStream out) {
+          switch (value) {
             case Inet.V4(int addr, byte netmask) -> {
-              ByteBuffer buf = ByteBuffer.allocate(8).order(ByteOrder.BIG_ENDIAN);
-              buf.put((byte) 2); // IPv4 address family
-              buf.put(netmask);
-              buf.put((byte) 0); // is_cidr = 0 for inet
-              buf.put((byte) 4); // address length
-              buf.putInt(addr);
-              yield buf.array();
+              out.write(2); // IPv4 address family
+              out.write(netmask);
+              out.write(0); // is_cidr = 0 for inet
+              out.write(4); // address length
+              out.write((addr >>> 24) & 0xFF);
+              out.write((addr >>> 16) & 0xFF);
+              out.write((addr >>> 8) & 0xFF);
+              out.write(addr & 0xFF);
             }
             case Inet.V6(int w1, int w2, int w3, int w4, byte netmask) -> {
-              ByteBuffer buf = ByteBuffer.allocate(20).order(ByteOrder.BIG_ENDIAN);
-              buf.put((byte) 3); // IPv6 address family for INET
-              buf.put(netmask);
-              buf.put((byte) 0); // is_cidr = 0 for inet
-              buf.put((byte) 16); // address length
-              buf.putInt(w1);
-              buf.putInt(w2);
-              buf.putInt(w3);
-              buf.putInt(w4);
-              yield buf.array();
+              out.write(3); // IPv6 address family for INET
+              out.write(netmask);
+              out.write(0); // is_cidr = 0 for inet
+              out.write(16); // address length
+              out.write((w1 >>> 24) & 0xFF);
+              out.write((w1 >>> 16) & 0xFF);
+              out.write((w1 >>> 8) & 0xFF);
+              out.write(w1 & 0xFF);
+              out.write((w2 >>> 24) & 0xFF);
+              out.write((w2 >>> 16) & 0xFF);
+              out.write((w2 >>> 8) & 0xFF);
+              out.write(w2 & 0xFF);
+              out.write((w3 >>> 24) & 0xFF);
+              out.write((w3 >>> 16) & 0xFF);
+              out.write((w3 >>> 8) & 0xFF);
+              out.write(w3 & 0xFF);
+              out.write((w4 >>> 24) & 0xFF);
+              out.write((w4 >>> 16) & 0xFF);
+              out.write((w4 >>> 8) & 0xFF);
+              out.write(w4 & 0xFF);
             }
-          };
+            default -> throw new IllegalStateException("Unreachable: unknown Inet variant");
+          }
         }
 
         @Override
@@ -161,7 +173,7 @@ public sealed interface Inet permits Inet.V4, Inet.V6 {
               + (addr & 0xFF);
         }
 
-        static int parseIPv4(String s) throws Exception {
+        static int parseIpV4(String s) throws Exception {
           String[] parts = s.split("\\.");
           if (parts.length != 4) {
             throw new Exception("bad IPv4: " + s);
@@ -181,7 +193,7 @@ public sealed interface Inet permits Inet.V4, Inet.V6 {
 
           if (addrPart.contains(":")) {
             // IPv6
-            int[] groups = parseIPv6Groups(addrPart);
+            int[] groups = parseIpV6Groups(addrPart);
             int w1 = (groups[0] << 16) | groups[1];
             int w2 = (groups[2] << 16) | groups[3];
             int w3 = (groups[4] << 16) | groups[5];
@@ -190,7 +202,7 @@ public sealed interface Inet permits Inet.V4, Inet.V6 {
             return new Inet.V6(w1, w2, w3, w4, (byte) netmask);
           } else {
             // IPv4
-            int addr = parseIPv4(addrPart);
+            int addr = parseIpV4(addrPart);
             netmask = slash >= 0 ? Integer.parseInt(s.substring(slash + 1)) : 32;
             return new Inet.V4(addr, (byte) netmask);
           }
@@ -208,7 +220,10 @@ public sealed interface Inet permits Inet.V4, Inet.V6 {
             (w4 >>> 16) & 0xFFFF, w4 & 0xFFFF
           };
           // Find the longest consecutive run of zero groups (min length 2)
-          int elideStart = -1, elideLen = 0, curStart = -1, curLen = 0;
+          int elideStart = -1;
+          int elideLen = 0;
+          int curStart = -1;
+          int curLen = 0;
           for (int i = 0; i < 8; i++) {
             if (g[i] == 0) {
               if (curLen == 0) {
@@ -249,21 +264,21 @@ public sealed interface Inet permits Inet.V4, Inet.V6 {
          * Parses a compressed or full IPv6 address string into an array of 8 unsigned 16-bit
          * groups.
          */
-        static int[] parseIPv6Groups(String s) throws Exception {
+        static int[] parseIpV6Groups(String s) throws Exception {
           // Handle :: expansion
           int dcolon = s.indexOf("::");
           if (dcolon >= 0) {
             String before = s.substring(0, dcolon);
             String after = s.substring(dcolon + 2);
-            int[] bGroups = before.isEmpty() ? new int[0] : parseHexGroups(before);
-            int[] aGroups = after.isEmpty() ? new int[0] : parseHexGroups(after);
-            int zeros = 8 - bGroups.length - aGroups.length;
+            int[] beforeGroups = before.isEmpty() ? new int[0] : parseHexGroups(before);
+            int[] afterGroups = after.isEmpty() ? new int[0] : parseHexGroups(after);
+            int zeros = 8 - beforeGroups.length - afterGroups.length;
             if (zeros < 0) {
               throw new Exception("Too many groups in IPv6: " + s);
             }
             int[] result = new int[8];
-            System.arraycopy(bGroups, 0, result, 0, bGroups.length);
-            System.arraycopy(aGroups, 0, result, 8 - aGroups.length, aGroups.length);
+            System.arraycopy(beforeGroups, 0, result, 0, beforeGroups.length);
+            System.arraycopy(afterGroups, 0, result, 8 - afterGroups.length, afterGroups.length);
             return result;
           } else {
             int[] groups = parseHexGroups(s);

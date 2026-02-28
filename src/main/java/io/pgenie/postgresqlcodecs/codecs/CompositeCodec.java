@@ -1,7 +1,7 @@
 package io.pgenie.postgresqlcodecs.codecs;
 
+import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.function.Function;
 
 /**
@@ -29,6 +29,17 @@ public final class CompositeCodec<Z> implements Codec<Z> {
   private final Object constructor;
   private final Field<Z, ?>[] fields;
 
+  /**
+   * Creates a 2-field composite codec.
+   *
+   * @param <A> type of the first field
+   * @param <B> type of the second field
+   * @param schema PostgreSQL schema name, or empty/null for default search path
+   * @param name PostgreSQL composite type name
+   * @param construct curried constructor function
+   * @param fieldA first field descriptor
+   * @param fieldB second field descriptor
+   */
   @SuppressWarnings("unchecked")
   public <A, B> CompositeCodec(
       String schema,
@@ -42,6 +53,19 @@ public final class CompositeCodec<Z> implements Codec<Z> {
     this.fields = new Field[] {fieldA, fieldB};
   }
 
+  /**
+   * Creates a 3-field composite codec.
+   *
+   * @param <A> type of the first field
+   * @param <B> type of the second field
+   * @param <C> type of the third field
+   * @param schema PostgreSQL schema name, or empty/null for default search path
+   * @param name PostgreSQL composite type name
+   * @param construct curried constructor function
+   * @param fieldA first field descriptor
+   * @param fieldB second field descriptor
+   * @param fieldC third field descriptor
+   */
   @SuppressWarnings("unchecked")
   public <A, B, C> CompositeCodec(
       String schema,
@@ -56,6 +80,21 @@ public final class CompositeCodec<Z> implements Codec<Z> {
     this.fields = new Field[] {fieldA, fieldB, fieldC};
   }
 
+  /**
+   * Creates a 4-field composite codec.
+   *
+   * @param <A> type of the first field
+   * @param <B> type of the second field
+   * @param <C> type of the third field
+   * @param <D> type of the fourth field
+   * @param schema PostgreSQL schema name, or empty/null for default search path
+   * @param name PostgreSQL composite type name
+   * @param construct curried constructor function
+   * @param fieldA first field descriptor
+   * @param fieldB second field descriptor
+   * @param fieldC third field descriptor
+   * @param fieldD fourth field descriptor
+   */
   @SuppressWarnings("unchecked")
   public <A, B, C, D> CompositeCodec(
       String schema,
@@ -71,6 +110,23 @@ public final class CompositeCodec<Z> implements Codec<Z> {
     this.fields = new Field[] {fieldA, fieldB, fieldC, fieldD};
   }
 
+  /**
+   * Creates a 5-field composite codec.
+   *
+   * @param <A> type of the first field
+   * @param <B> type of the second field
+   * @param <C> type of the third field
+   * @param <D> type of the fourth field
+   * @param <E> type of the fifth field
+   * @param schema PostgreSQL schema name, or empty/null for default search path
+   * @param name PostgreSQL composite type name
+   * @param construct curried constructor function
+   * @param fieldA first field descriptor
+   * @param fieldB second field descriptor
+   * @param fieldC third field descriptor
+   * @param fieldD fourth field descriptor
+   * @param fieldE fifth field descriptor
+   */
   @SuppressWarnings("unchecked")
   public <A, B, C, D, E> CompositeCodec(
       String schema,
@@ -186,7 +242,8 @@ public final class CompositeCodec<Z> implements Codec<Z> {
   // Binary wire format
   // -----------------------------------------------------------------------
   /**
-   * Encodes the composite value in the PostgreSQL binary composite format.
+   * Encodes the composite value in the PostgreSQL binary composite format, appending the bytes to
+   * {@code out}.
    *
    * <p>Layout:
    *
@@ -200,39 +257,28 @@ public final class CompositeCodec<Z> implements Codec<Z> {
    */
   @Override
   @SuppressWarnings("unchecked")
-  public byte[] encode(Z value) {
-    // Pre-encode all fields
-    byte[][] encodedFields = new byte[fields.length][];
-    for (int i = 0; i < fields.length; i++) {
-      var field = (Field<Z, Object>) fields[i];
+  public void encode(Z value, ByteArrayOutputStream out) {
+    writeInt32(out, fields.length);
+    for (var f : fields) {
+      var field = (Field<Z, Object>) f;
       Object fieldValue = field.accessor.apply(value);
-      encodedFields[i] = (fieldValue != null) ? field.codec.encode(fieldValue) : null;
-    }
-
-    // Compute total buffer size: 4 (field_count) + fields × (4 oid + 4 length + data)
-    int totalSize = 4;
-    for (byte[] ef : encodedFields) {
-      totalSize += 4 + 4; // oid + length
-      if (ef != null) {
-        totalSize += ef.length;
-      }
-    }
-
-    ByteBuffer buf = ByteBuffer.allocate(totalSize).order(ByteOrder.BIG_ENDIAN);
-    buf.putInt(fields.length);
-
-    for (int i = 0; i < fields.length; i++) {
-      var field = (Field<Z, Object>) fields[i];
-      buf.putInt(field.codec.oid()); // field OID (0 if unknown)
-      byte[] ef = encodedFields[i];
-      if (ef == null) {
-        buf.putInt(-1); // NULL
+      writeInt32(out, field.codec.oid());
+      if (fieldValue == null) {
+        writeInt32(out, -1);
       } else {
-        buf.putInt(ef.length);
-        buf.put(ef);
+        var fieldOut = new ByteArrayOutputStream();
+        field.codec.encode(fieldValue, fieldOut);
+        writeInt32(out, fieldOut.size());
+        out.write(fieldOut.toByteArray(), 0, fieldOut.size());
       }
     }
-    return buf.array();
+  }
+
+  private static void writeInt32(ByteArrayOutputStream out, int v) {
+    out.write((v >>> 24) & 0xFF);
+    out.write((v >>> 16) & 0xFF);
+    out.write((v >>> 8) & 0xFF);
+    out.write(v & 0xFF);
   }
 
   /** Decodes a composite value from the PostgreSQL binary composite format. */
@@ -350,12 +396,25 @@ public final class CompositeCodec<Z> implements Codec<Z> {
     sb.append('\'');
   }
 
+  /**
+   * Describes a single field inside a PostgreSQL composite type.
+   *
+   * @param <Z> the composite type
+   * @param <A> the field value type
+   */
   public static final class Field<Z, A> {
 
     public final String name;
     public final Function<Z, A> accessor;
     public final Codec<A> codec;
 
+    /**
+     * Creates a new field descriptor.
+     *
+     * @param name the PostgreSQL column name
+     * @param accessor function extracting this field's value from the composite
+     * @param codec codec used to encode/decode this field's values
+     */
     public Field(String name, Function<Z, A> accessor, Codec<A> codec) {
       this.name = name;
       this.accessor = accessor;

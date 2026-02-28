@@ -1,5 +1,6 @@
 package io.pgenie.postgresqlcodecs.codecs;
 
+import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.function.Function;
 
@@ -40,8 +41,8 @@ final class MappedCodec<A, B> implements Codec<B> {
   }
 
   @Override
-  public byte[] encode(B value) {
-    return codec.encode(fromMapped.apply(value));
+  public void encode(B value, ByteArrayOutputStream out) {
+    codec.encode(fromMapped.apply(value), out);
   }
 
   @Override

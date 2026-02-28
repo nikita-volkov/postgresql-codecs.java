@@ -1,9 +1,16 @@
 package io.pgenie.postgresqlcodecs.codecs;
 
+import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Codec for PostgreSQL {@code ENUM} types, mapping between Java enum constants and their
+ * corresponding PostgreSQL label strings.
+ *
+ * @param <E> the Java enum type
+ */
 public final class EnumCodec<E> implements Codec<E> {
 
   private final String schema;
@@ -11,6 +18,14 @@ public final class EnumCodec<E> implements Codec<E> {
   private final Map<E, String> pgLabels;
   private final Map<String, E> byPgLabel;
 
+  /**
+   * Creates a new codec for the PostgreSQL enum type {@code name} in {@code schema}.
+   *
+   * @param schema the PostgreSQL schema containing the enum type, or empty/null for the default
+   *     search path
+   * @param name the PostgreSQL enum type name
+   * @param pgLabels mapping from each Java enum constant to its PostgreSQL label string
+   */
   public EnumCodec(String schema, String name, Map<E, String> pgLabels) {
     this.schema = schema;
     this.pgName = name;
@@ -45,7 +60,7 @@ public final class EnumCodec<E> implements Codec<E> {
   }
 
   @Override
-  public byte[] encode(E value) {
+  public void encode(E value, ByteArrayOutputStream out) {
     // TODO Auto-generated method stub
     throw new UnsupportedOperationException("Unimplemented method 'encode'");
   }
