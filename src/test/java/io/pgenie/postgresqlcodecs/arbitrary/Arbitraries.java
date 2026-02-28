@@ -6,15 +6,13 @@ import net.jqwik.api.Arbitrary;
 
 public final class Arbitraries {
 
-    private Arbitraries() {
-    }
+  private Arbitraries() {}
 
-    public static Arbitrary<Inet> inet() {
-        return net.jqwik.api.Arbitraries.randomValue(Inet::generate);
-    }
+  public static Arbitrary<Inet> inet() {
+    return net.jqwik.api.Arbitraries.randomValue(Inet::generate);
+  }
 
-    public static Arbitrary<Macaddr> macaddr() {
-        return net.jqwik.api.Arbitraries.randomValue(Macaddr::generate);
-    }
-
+  public static Arbitrary<Macaddr> macaddr() {
+    return net.jqwik.api.Arbitraries.randomValue(Macaddr::generate);
+  }
 }
