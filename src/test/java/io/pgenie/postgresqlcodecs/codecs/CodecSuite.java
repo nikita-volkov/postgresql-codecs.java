@@ -9,17 +9,21 @@ import io.pgenie.postgresqlcodecs.TextInBinaryOutR2dbcCodec;
 import io.pgenie.postgresqlcodecs.TextInTextOutR2dbcCodec;
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
 import io.r2dbc.postgresql.PostgresqlConnectionFactory;
+import io.r2dbc.spi.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.postgresql.util.PGobject;
 import org.testcontainers.containers.PostgreSQLContainer;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 abstract class CodecSuite<A> {
 
   static final PostgreSQLContainer<?> pg;
@@ -33,31 +37,31 @@ abstract class CodecSuite<A> {
   private final Class<A> type;
 
   /** JDBC connection (pgjdbc) used for text-protocol baseline tests. */
-  private final java.sql.Connection conn;
+  private final java.sql.Connection pgjdbcConnection;
 
   /**
-   * R2DBC connection factory whose codec sends parameters in <b>binary</b> format and expects
+   * Persistent R2DBC connection whose codec sends parameters in <b>binary</b> format and expects
    * results in <b>binary</b> format ({@code forceBinary=true}).
    */
-  private final PostgresqlConnectionFactory binaryInBinaryOutFactory;
+  private final Connection binaryInBinaryOutConn;
 
   /**
-   * R2DBC connection factory whose codec sends parameters in <b>text</b> format and expects results
-   * in <b>text</b> format (no {@code forceBinary}).
-   */
-  private final PostgresqlConnectionFactory textInTextOutFactory;
-
-  /**
-   * R2DBC connection factory whose codec sends parameters in <b>text</b> format and expects results
-   * in <b>binary</b> format ({@code forceBinary=true}).
-   */
-  private final PostgresqlConnectionFactory textInBinaryOutFactory;
-
-  /**
-   * R2DBC connection factory whose codec sends parameters in <b>binary</b> format and expects
+   * Persistent R2DBC connection whose codec sends parameters in <b>text</b> format and expects
    * results in <b>text</b> format (no {@code forceBinary}).
    */
-  private final PostgresqlConnectionFactory binaryInTextOutFactory;
+  private final Connection textInTextOutConn;
+
+  /**
+   * Persistent R2DBC connection whose codec sends parameters in <b>text</b> format and expects
+   * results in <b>binary</b> format ({@code forceBinary=true}).
+   */
+  private final Connection textInBinaryOutConn;
+
+  /**
+   * Persistent R2DBC connection whose codec sends parameters in <b>binary</b> format and expects
+   * results in <b>text</b> format (no {@code forceBinary}).
+   */
+  private final Connection binaryInTextOutConn;
 
   protected CodecSuite(Codec<A> codec, Class<A> type) {
     this.codec = codec;
@@ -71,21 +75,31 @@ abstract class CodecSuite<A> {
       // columns remain in text format (avoids rs.getString() returning
       // "[B@…" for bytea columns after the binary-mode switch threshold).
       props.setProperty("prepareThreshold", "0");
-      conn = DriverManager.getConnection(pg.getJdbcUrl(), props);
+      pgjdbcConnection = DriverManager.getConnection(pg.getJdbcUrl(), props);
     } catch (SQLException e) {
       throw new RuntimeException("Failed to open connection", e);
     }
 
-    binaryInBinaryOutFactory = r2dbcFactory(true, new BinaryInBinaryOutR2dbcCodec<>(codec, type));
-    textInTextOutFactory = r2dbcFactory(false, new TextInTextOutR2dbcCodec<>(codec, type));
-    textInBinaryOutFactory = r2dbcFactory(true, new TextInBinaryOutR2dbcCodec<>(codec, type));
-    binaryInTextOutFactory = r2dbcFactory(false, new BinaryInTextOutR2dbcCodec<>(codec, type));
+    binaryInBinaryOutConn = r2dbcConnect(true, new BinaryInBinaryOutR2dbcCodec<>(codec, type));
+    textInTextOutConn = r2dbcConnect(false, new TextInTextOutR2dbcCodec<>(codec, type));
+    textInBinaryOutConn = r2dbcConnect(true, new TextInBinaryOutR2dbcCodec<>(codec, type));
+    binaryInTextOutConn = r2dbcConnect(false, new BinaryInTextOutR2dbcCodec<>(codec, type));
+  }
+
+  @AfterAll
+  void closeConnections() throws Exception {
+    pgjdbcConnection.close();
+    Mono.from(binaryInBinaryOutConn.close())
+        .then(Mono.from(textInTextOutConn.close()))
+        .then(Mono.from(textInBinaryOutConn.close()))
+        .then(Mono.from(binaryInTextOutConn.close()))
+        .block();
   }
 
   // -----------------------------------------------------------------------
   // Helpers
   // -----------------------------------------------------------------------
-  private PostgresqlConnectionFactory r2dbcFactory(
+  private Connection r2dbcConnect(
       boolean forceBinary, io.r2dbc.postgresql.codec.Codec<A> r2dbcCodec) {
     var builder =
         PostgresqlConnectionConfiguration.builder()
@@ -102,21 +116,14 @@ abstract class CodecSuite<A> {
     if (forceBinary) {
       builder.forceBinary(true);
     }
-    return new PostgresqlConnectionFactory(builder.build());
+    return Mono.from(new PostgresqlConnectionFactory(builder.build()).create()).block();
   }
 
-  private A roundtripViaR2dbc(PostgresqlConnectionFactory factory, A value) {
-    return Mono.usingWhen(
-            factory.create(),
-            r2conn ->
-                Flux.from(
-                        r2conn
-                            .createStatement("SELECT $1::" + codec.typeSig())
-                            .bind(0, value)
-                            .execute())
-                    .flatMap(result -> result.map((row, meta) -> row.get(0, type)))
-                    .single(),
-            c -> c.close())
+  private A roundtripViaR2dbc(Connection r2conn, A value) {
+    return Flux.from(
+            r2conn.createStatement("SELECT $1::" + codec.typeSig()).bind(0, value).execute())
+        .flatMap(result -> result.map((row, meta) -> row.get(0, type)))
+        .single()
         .block();
   }
 
@@ -128,7 +135,8 @@ abstract class CodecSuite<A> {
     if (codec.oid() == 0) {
       return;
     }
-    try (var ps = conn.prepareStatement("SELECT oid::int FROM pg_type WHERE typname = ?")) {
+    try (var ps =
+        pgjdbcConnection.prepareStatement("SELECT oid::int FROM pg_type WHERE typname = ?")) {
       // TODO: Account for schema-qualified types names
       ps.setString(1, codec.name());
       try (ResultSet rs = ps.executeQuery()) {
@@ -141,31 +149,31 @@ abstract class CodecSuite<A> {
 
   @Property(tries = 100)
   void roundtripsInBinaryToBinaryViaR2dbc(@ForAll("values") A value) throws Exception {
-    A decoded = roundtripViaR2dbc(binaryInBinaryOutFactory, value);
+    A decoded = roundtripViaR2dbc(binaryInBinaryOutConn, value);
     assertEquals(value, decoded, "decode mismatch for " + codec.typeSig() + " value=" + value);
   }
 
   @Property(tries = 100)
   void roundtripsInTextToTextViaR2dbc(@ForAll("values") A value) throws Exception {
-    A decoded = roundtripViaR2dbc(textInTextOutFactory, value);
+    A decoded = roundtripViaR2dbc(textInTextOutConn, value);
     assertEquals(value, decoded, "decode mismatch for " + codec.typeSig() + " value=" + value);
   }
 
   @Property(tries = 100)
   void roundtripsInTextToBinaryViaR2dbc(@ForAll("values") A value) throws Exception {
-    A decoded = roundtripViaR2dbc(textInBinaryOutFactory, value);
+    A decoded = roundtripViaR2dbc(textInBinaryOutConn, value);
     assertEquals(value, decoded, "decode mismatch for " + codec.typeSig() + " value=" + value);
   }
 
   @Property(tries = 100)
   void roundtripsInBinaryToTextViaR2dbc(@ForAll("values") A value) throws Exception {
-    A decoded = roundtripViaR2dbc(binaryInTextOutFactory, value);
+    A decoded = roundtripViaR2dbc(binaryInTextOutConn, value);
     assertEquals(value, decoded, "decode mismatch for " + codec.typeSig() + " value=" + value);
   }
 
   @Property(tries = 100)
   void roundtripsInTextToTextViaPgjdbc(@ForAll("values") A value) throws Exception {
-    try (var ps = conn.prepareStatement("SELECT ?::" + codec.typeSig())) {
+    try (var ps = pgjdbcConnection.prepareStatement("SELECT ?::" + codec.typeSig())) {
       if (value != null) {
         PGobject obj = new PGobject();
         obj.setType(codec.typeSig());
