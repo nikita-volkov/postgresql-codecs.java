@@ -38,7 +38,8 @@ public interface Codec<A> {
     String name();
 
     /**
-     * Returns the full PostgreSQL type signature, including schema if applicable.
+     * Returns the full PostgreSQL type signature, including schema if
+     * applicable.
      */
     default String typeSig() {
         String schema = schema();
@@ -140,7 +141,7 @@ public interface Codec<A> {
      * @throws UnsupportedOperationException if binary decoding is not
      * implemented for this type
      */
-     A decodeBinary(ByteBuffer buf, int length) throws ParseException;
+    A decodeBinary(ByteBuffer buf, int length) throws ParseException;
 
     // -----------------------------------------------------------------------
     // Result / exception types
