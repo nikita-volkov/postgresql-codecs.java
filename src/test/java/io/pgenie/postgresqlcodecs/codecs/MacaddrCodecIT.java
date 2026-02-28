@@ -1,11 +1,15 @@
 package io.pgenie.postgresqlcodecs.codecs;
 
+import java.util.stream.Stream;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import io.pgenie.postgresqlcodecs.arbitrary.Arbitrary;
 import io.pgenie.postgresqlcodecs.types.Macaddr;
 
 public class MacaddrCodecIT extends CodecITBase {
@@ -36,15 +40,17 @@ public class MacaddrCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#macaddrs")
+    @MethodSource("factory")
     void macaddrPropertyRoundTrip(Macaddr value) throws Exception {
         assertEquals(value, roundTrip(Codec.MACADDR, value));
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#macaddrs")
+    @MethodSource("factory")
     void macaddrPropertyBinaryRoundTrip(Macaddr value) throws Exception {
         assertBinaryRoundTrip(Codec.MACADDR, "macaddr", value);
     }
+
+    static Stream<Arguments> factory() { return Arbitrary.samples(Arbitrary.MACADDR); }
 
 }

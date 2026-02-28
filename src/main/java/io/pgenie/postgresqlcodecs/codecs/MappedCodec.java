@@ -5,7 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.function.Function;
 
-public final class MappedCodec<A, B> implements Codec<B> {
+final class MappedCodec<A, B> implements Codec<B> {
 
     private final Codec<A> codec;
     private final Function<A, B> toMapped;
