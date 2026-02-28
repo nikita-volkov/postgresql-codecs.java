@@ -28,7 +28,7 @@ public class JsonCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#jsons")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#jsons")
     void jsonPropertyRoundTrip(String value) throws Exception {
         // PostgreSQL json type preserves the exact text representation.
         assertEquals(value, roundTrip(Codec.JSON, value));

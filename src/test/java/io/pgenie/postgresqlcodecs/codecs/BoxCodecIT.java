@@ -27,7 +27,7 @@ public class BoxCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#boxes")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#boxes")
     void boxPropertyBinaryRoundTrip(PGbox value) throws Exception {
         assertBinaryRoundTrip(Codec.BOX, "box", value);
     }

@@ -43,13 +43,13 @@ public class DateCodecIT extends CodecITBase {
      * binary round-trip uses the full range.
      */
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#datesAD")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#datesAD")
     void datePropertyRoundTrip(LocalDate value) throws Exception {
         assertEquals(value, roundTrip(Codec.DATE, value));
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#dates")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#dates")
     void datePropertyBinaryRoundTrip(LocalDate value) throws Exception {
         assertBinaryRoundTrip(Codec.DATE, "date", value);
     }

@@ -1,14 +1,13 @@
 package io.pgenie.postgresqlcodecs.codecs;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import java.util.List;
 import java.util.Map;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-
-import io.pgenie.postgresqlcodecs.types.Tsvector;
 
 import io.pgenie.postgresqlcodecs.types.Tsvector;
 
@@ -53,13 +52,13 @@ public class TsvectorCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#tsvectors")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#tsvectors")
     void tsvectorPropertyRoundTrip(Tsvector value) throws Exception {
         assertEquals(value, roundTrip(Codec.TSVECTOR, value));
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#tsvectors")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#tsvectors")
     void tsvectorPropertyBinaryRoundTrip(Tsvector value) throws Exception {
         assertBinaryRoundTrip(Codec.TSVECTOR, "tsvector", value);
     }

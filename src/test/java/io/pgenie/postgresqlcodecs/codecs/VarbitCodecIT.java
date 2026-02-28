@@ -8,8 +8,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.pgenie.postgresqlcodecs.types.Varbit;
 
-import io.pgenie.postgresqlcodecs.types.Varbit;
-
 public class VarbitCodecIT extends CodecITBase {
 
     @Test
@@ -37,13 +35,13 @@ public class VarbitCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#varbits")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#varbits")
     void varbitPropertyRoundTrip(Varbit value) throws Exception {
         assertEquals(value, roundTrip(Codec.VARBIT, value));
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#varbits")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#varbits")
     void varbitPropertyBinaryRoundTrip(Varbit value) throws Exception {
         assertBinaryRoundTrip(Codec.VARBIT, "varbit", value);
     }

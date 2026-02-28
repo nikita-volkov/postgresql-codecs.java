@@ -27,7 +27,7 @@ public class LsegCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#lsegs")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#lsegs")
     void lsegPropertyBinaryRoundTrip(PGlseg value) throws Exception {
         assertBinaryRoundTrip(Codec.LSEG, "lseg", value);
     }

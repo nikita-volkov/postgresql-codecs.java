@@ -13,7 +13,7 @@ public class CharCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#chars")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#chars")
     void charPropertyRoundTrip(String value) throws Exception {
         // PostgreSQL char(1) blank-pads, so trimming is needed for comparison.
         String result = roundTrip(Codec.CHAR, value);

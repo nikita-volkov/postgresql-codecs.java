@@ -42,13 +42,13 @@ public class TimeCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#times")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#times")
     void timePropertyRoundTrip(LocalTime value) throws Exception {
         assertEquals(value, roundTrip(Codec.TIME, value));
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#times")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#times")
     void timePropertyBinaryRoundTrip(LocalTime value) throws Exception {
         assertBinaryRoundTrip(Codec.TIME, "time", value);
     }

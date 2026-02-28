@@ -8,8 +8,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.pgenie.postgresqlcodecs.types.Bit;
 
-import io.pgenie.postgresqlcodecs.types.Bit;
-
 public class BitCodecIT extends CodecITBase {
 
     @Test
@@ -43,7 +41,7 @@ public class BitCodecIT extends CodecITBase {
      * PostgreSQL does not truncate or pad the value.
      */
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#bits")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#bits")
     void bitPropertyBinaryRoundTrip(Bit value) throws Exception {
         assertBinaryRoundTrip(Codec.BIT, "bit(" + value.numBits + ")", value);
     }

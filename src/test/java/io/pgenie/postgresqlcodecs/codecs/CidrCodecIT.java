@@ -8,8 +8,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.pgenie.postgresqlcodecs.types.Cidr;
 
-import io.pgenie.postgresqlcodecs.types.Cidr;
-
 public class CidrCodecIT extends CodecITBase {
 
     // 192.168.1.0/24
@@ -46,13 +44,13 @@ public class CidrCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#cidrs")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#cidrs")
     void cidrPropertyRoundTrip(Cidr value) throws Exception {
         assertEquals(value, roundTrip(Codec.CIDR, value));
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#cidrs")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#cidrs")
     void cidrPropertyBinaryRoundTrip(Cidr value) throws Exception {
         assertBinaryRoundTrip(Codec.CIDR, "cidr", value);
     }

@@ -37,13 +37,13 @@ public class TimetzCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#timetzes")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#timetzes")
     void timetzPropertyRoundTrip(OffsetTime value) throws Exception {
         assertEquals(value, roundTrip(Codec.TIMETZ, value));
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#timetzes")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#timetzes")
     void timetzPropertyBinaryRoundTrip(OffsetTime value) throws Exception {
         assertBinaryRoundTrip(Codec.TIMETZ, "timetz", value);
     }

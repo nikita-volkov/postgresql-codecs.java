@@ -37,7 +37,7 @@ public class JsonbCodecIT extends CodecITBase {
      * only non-null acceptance is asserted rather than string equality.
      */
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#jsonbs")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#jsonbs")
     void jsonbPropertyRoundTrip(String value) throws Exception {
         assertNotNull(roundTrip(Codec.JSONB, value),
                 "jsonb round-trip returned null for: " + value);

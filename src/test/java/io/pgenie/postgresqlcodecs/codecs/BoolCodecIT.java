@@ -40,13 +40,13 @@ public class BoolCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#booleans")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#booleans")
     void boolPropertyRoundTrip(Boolean value) throws Exception {
         assertEquals(value, roundTrip(Codec.BOOL, value));
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#booleans")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#booleans")
     void boolPropertyBinaryRoundTrip(Boolean value) throws Exception {
         assertBinaryRoundTrip(Codec.BOOL, "bool", value);
     }

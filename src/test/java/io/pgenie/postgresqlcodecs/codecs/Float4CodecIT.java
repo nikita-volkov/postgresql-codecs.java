@@ -49,7 +49,7 @@ public class Float4CodecIT extends CodecITBase {
 
     /** Property: finite float4 values round-trip through the binary codec exactly. */
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#float4s")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#float4s")
     void float4PropertyBinaryRoundTrip(Float value) throws Exception {
         assertBinaryRoundTrip(Codec.FLOAT4, "float4", value);
     }

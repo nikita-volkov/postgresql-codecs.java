@@ -35,7 +35,7 @@ public class PointCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#points")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#points")
     void pointPropertyBinaryRoundTrip(PGpoint value) throws Exception {
         assertBinaryRoundTrip(Codec.POINT, "point", value);
     }

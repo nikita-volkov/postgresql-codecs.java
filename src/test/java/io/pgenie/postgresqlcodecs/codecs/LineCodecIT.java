@@ -13,7 +13,7 @@ public class LineCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#lines")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#lines")
     void linePropertyBinaryRoundTrip(PGline value) throws Exception {
         assertBinaryRoundTrip(Codec.LINE, "line", value);
     }

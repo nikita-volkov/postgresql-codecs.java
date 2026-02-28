@@ -8,8 +8,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.pgenie.postgresqlcodecs.types.Macaddr;
 
-import io.pgenie.postgresqlcodecs.types.Macaddr;
-
 public class MacaddrCodecIT extends CodecITBase {
 
     private static final Macaddr MAC_08002B010203 =
@@ -38,13 +36,13 @@ public class MacaddrCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#macaddrs")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#macaddrs")
     void macaddrPropertyRoundTrip(Macaddr value) throws Exception {
         assertEquals(value, roundTrip(Codec.MACADDR, value));
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#macaddrs")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#macaddrs")
     void macaddrPropertyBinaryRoundTrip(Macaddr value) throws Exception {
         assertBinaryRoundTrip(Codec.MACADDR, "macaddr", value);
     }

@@ -40,13 +40,13 @@ public class UuidCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#uuids")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#uuids")
     void uuidPropertyRoundTrip(UUID value) throws Exception {
         assertEquals(value, roundTrip(Codec.UUID, value));
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#uuids")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#uuids")
     void uuidPropertyBinaryRoundTrip(UUID value) throws Exception {
         assertBinaryRoundTrip(Codec.UUID, "uuid", value);
     }

@@ -57,13 +57,13 @@ public class NumericCodecIT extends CodecITBase {
      * equal even if not {@code equals}.
      */
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#numerics")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#numerics")
     void numericPropertyBinaryRoundTrip(BigDecimal value) throws Exception {
         assertBinaryRoundTrip(Codec.NUMERIC, "numeric", value);
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#numerics")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#numerics")
     void numericPropertyRoundTrip(BigDecimal value) throws Exception {
         BigDecimal result = roundTrip(Codec.NUMERIC, value);
         assertEquals(0, value.compareTo(result),

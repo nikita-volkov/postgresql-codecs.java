@@ -38,13 +38,13 @@ public class Int8CodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#int8s")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#int8s")
     void int8PropertyRoundTrip(Long value) throws Exception {
         assertEquals(value, roundTrip(Codec.INT8, value));
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#int8s")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#int8s")
     void int8PropertyBinaryRoundTrip(Long value) throws Exception {
         assertBinaryRoundTrip(Codec.INT8, "int8", value);
     }

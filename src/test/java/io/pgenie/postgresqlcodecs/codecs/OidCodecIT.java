@@ -25,7 +25,7 @@ public class OidCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#oids")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#oids")
     void oidPropertyRoundTrip(Long value) throws Exception {
         assertEquals(value, roundTrip(Codec.OID, value));
     }

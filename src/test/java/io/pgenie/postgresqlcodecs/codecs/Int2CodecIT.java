@@ -37,13 +37,13 @@ public class Int2CodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#int2s")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#int2s")
     void int2PropertyRoundTrip(Short value) throws Exception {
         assertEquals(value, roundTrip(Codec.INT2, value));
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#int2s")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#int2s")
     void int2PropertyBinaryRoundTrip(Short value) throws Exception {
         assertBinaryRoundTrip(Codec.INT2, "int2", value);
     }

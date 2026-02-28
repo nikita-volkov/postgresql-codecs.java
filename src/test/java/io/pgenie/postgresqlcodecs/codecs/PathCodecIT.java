@@ -26,7 +26,7 @@ public class PathCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#paths")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#paths")
     void pathPropertyBinaryRoundTrip(PGpath value) throws Exception {
         assertBinaryRoundTrip(Codec.PATH, "path", value);
     }

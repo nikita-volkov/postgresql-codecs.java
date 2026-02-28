@@ -55,7 +55,7 @@ public class ByteaCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#byteas")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#byteas")
     void byteaPropertyRoundTrip(byte[] value) throws Exception {
         String text = roundTripText(Codec.BYTEA, "bytea", value);
         assertNotNull(text);
@@ -63,7 +63,7 @@ public class ByteaCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#byteas")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#byteas")
     void byteaPropertyBinaryRoundTrip(byte[] value) throws Exception {
         byte[] pgBytes = pgBinaryBytes(Codec.BYTEA, "bytea", value);
         assertArrayEquals(pgBytes, Codec.BYTEA.encode(value));

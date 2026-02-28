@@ -48,13 +48,13 @@ public class TimestampCodecIT extends CodecITBase {
      * binary round-trip uses the full range.
      */
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#timestampsAD")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#timestampsAD")
     void timestampPropertyRoundTrip(LocalDateTime value) throws Exception {
         assertEquals(value, roundTrip(Codec.TIMESTAMP, value));
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#timestamps")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#timestamps")
     void timestampPropertyBinaryRoundTrip(LocalDateTime value) throws Exception {
         assertBinaryRoundTrip(Codec.TIMESTAMP, "timestamp", value);
     }

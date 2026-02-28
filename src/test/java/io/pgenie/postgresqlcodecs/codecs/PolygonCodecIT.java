@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.postgresql.geometric.PGpolygon;
 import org.postgresql.geometric.PGpoint;
+import org.postgresql.geometric.PGpolygon;
 
 public class PolygonCodecIT extends CodecITBase {
 
@@ -24,7 +24,7 @@ public class PolygonCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#polygons")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#polygons")
     void polygonPropertyBinaryRoundTrip(PGpolygon value) throws Exception {
         assertBinaryRoundTrip(Codec.POLYGON, "polygon", value);
     }

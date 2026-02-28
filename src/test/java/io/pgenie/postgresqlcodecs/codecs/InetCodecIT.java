@@ -8,8 +8,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.pgenie.postgresqlcodecs.types.Inet;
 
-import io.pgenie.postgresqlcodecs.types.Inet;
-
 public class InetCodecIT extends CodecITBase {
 
     // 192.168.1.1/32 as int: 0xC0A80101
@@ -67,13 +65,13 @@ public class InetCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#inets")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#inets")
     void inetPropertyRoundTrip(Inet value) throws Exception {
         assertEquals(value, roundTrip(Codec.INET, value));
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#inets")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#inets")
     void inetPropertyBinaryRoundTrip(Inet value) throws Exception {
         assertBinaryRoundTrip(Codec.INET, "inet", value);
     }

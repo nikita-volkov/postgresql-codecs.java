@@ -13,7 +13,7 @@ public class VarcharCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#varchars")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#varchars")
     void varcharPropertyRoundTrip(String value) throws Exception {
         assertEquals(value, roundTrip(Codec.VARCHAR, value));
     }

@@ -50,13 +50,13 @@ public class TimestamptzCodecIT extends CodecITBase {
      * binary round-trip uses the full range.
      */
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#timestamptzADs")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#timestamptzADs")
     void timestamptzPropertyRoundTrip(OffsetDateTime value) throws Exception {
         assertEquals(value.toInstant(), roundTrip(Codec.TIMESTAMPTZ, value).toInstant());
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#timestamptzs")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#timestamptzs")
     void timestamptzPropertyBinaryRoundTrip(OffsetDateTime value) throws Exception {
         assertBinaryRoundTrip(Codec.TIMESTAMPTZ, "timestamptz", value);
     }

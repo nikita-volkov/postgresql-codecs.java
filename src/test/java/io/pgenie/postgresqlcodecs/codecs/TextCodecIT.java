@@ -44,13 +44,13 @@ public class TextCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#texts")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#texts")
     void textPropertyRoundTrip(String value) throws Exception {
         assertEquals(value, roundTrip(Codec.TEXT, value));
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#texts")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#texts")
     void textPropertyBinaryRoundTrip(String value) throws Exception {
         assertBinaryRoundTrip(Codec.TEXT, "text", value);
     }

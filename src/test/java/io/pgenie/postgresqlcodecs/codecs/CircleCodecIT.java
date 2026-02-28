@@ -40,7 +40,7 @@ public class CircleCodecIT extends CodecITBase {
      * {@code radius >= 0}.
      */
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#circles")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#circles")
     void circlePropertyBinaryRoundTrip(PGcircle value) throws Exception {
         assertBinaryRoundTrip(Codec.CIRCLE, "circle", value);
     }

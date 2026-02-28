@@ -8,8 +8,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.pgenie.postgresqlcodecs.types.Interval;
 
-import io.pgenie.postgresqlcodecs.types.Interval;
-
 public class IntervalCodecIT extends CodecITBase {
 
     @Test
@@ -50,7 +48,7 @@ public class IntervalCodecIT extends CodecITBase {
     }
 
     @ParameterizedTest
-    @MethodSource("io.pgenie.postgresqlcodecs.codecs.Generators#intervals")
+    @MethodSource("io.pgenie.postgresqlcodecs.arbitrary.Arbitrary#intervals")
     void intervalPropertyBinaryRoundTrip(Interval value) throws Exception {
         assertBinaryRoundTrip(Codec.INTERVAL, "interval", value);
     }
