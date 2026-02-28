@@ -39,7 +39,10 @@ abstract class CodecITBase {
             var props = new java.util.Properties();
             props.setProperty("user", pg.getUsername());
             props.setProperty("password", pg.getPassword());
-            props.setProperty("binaryTransfer", "true");
+            // Disable server-side prepared-statement caching so that all result
+            // columns remain in text format (avoids rs.getString() returning
+            // "[B@…" for bytea columns after the binary-mode switch threshold).
+            props.setProperty("prepareThreshold", "0");
             conn = DriverManager.getConnection(pg.getJdbcUrl(), props);
         } catch (SQLException e) {
             throw new RuntimeException("Failed to open shared connection", e);
