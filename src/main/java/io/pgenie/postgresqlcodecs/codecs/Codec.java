@@ -1,7 +1,6 @@
 package io.pgenie.postgresqlcodecs.codecs;
 
 import java.nio.ByteBuffer;
-import java.sql.PreparedStatement;
 
 /**
  * A codec for a single scalar value.
@@ -65,14 +64,6 @@ public interface Codec<A> {
     default int arrayOid() {
         return 0;
     }
-
-    // -----------------------------------------------------------------------
-    // JDBC binding
-    // -----------------------------------------------------------------------
-    /**
-     * Binds the given value to the specified index in the prepared statement.
-     */
-    void bind(PreparedStatement ps, int index, A value) throws java.sql.SQLException;
 
     // -----------------------------------------------------------------------
     // Textual wire format

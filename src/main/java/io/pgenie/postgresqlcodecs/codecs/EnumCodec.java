@@ -42,14 +42,4 @@ public final class EnumCodec<E> implements Codec<E> {
         return new Codec.ParsingResult<>(value, input.length());
     }
 
-    @Override
-    public void bind(PreparedStatement ps, int index, E value) throws SQLException {
-        PGobject obj = new PGobject();
-        obj.setType(pgName);
-        if (value != null) {
-            obj.setValue(pgLabels.get(value));
-        }
-        ps.setObject(index, obj);
-    }
-
 }

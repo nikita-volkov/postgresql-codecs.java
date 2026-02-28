@@ -80,18 +80,6 @@ public sealed interface Inet permits Inet.V4, Inet.V6 {
         }
 
         @Override
-        public void bind(PreparedStatement ps, int index, Inet value) throws SQLException {
-            if (value != null) {
-                PGobject obj = new PGobject();
-                obj.setType("inet");
-                obj.setValue(inetToText(value));
-                ps.setObject(index, obj);
-            } else {
-                ps.setNull(index, Types.OTHER);
-            }
-        }
-
-        @Override
         public void write(StringBuilder sb, Inet value) {
             sb.append(inetToText(value));
         }

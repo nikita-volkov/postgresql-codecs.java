@@ -56,7 +56,19 @@ abstract class CodecITBase {
      */
     <A> A roundTrip(Codec<A> codec, A value) throws Exception {
         try (var ps = conn.prepareStatement("SELECT ?::" + codec.typeSig())) {
-            codec.bind(ps, 1, value);
+            if (value != null) {
+                PGobject obj = new PGobject();
+                obj.setType(codec.typeSig());
+                {
+                    StringBuilder sb = new StringBuilder();
+                    codec.write(sb, value);
+                    obj.setValue(sb.toString());
+                }
+                ps.setObject(1, obj);
+            } else {
+                ps.setNull(1, java.sql.Types.OTHER);
+            }
+
             try (ResultSet rs = ps.executeQuery()) {
                 assertTrue(rs.next(), "Expected a result row");
                 String text = rs.getString(1);

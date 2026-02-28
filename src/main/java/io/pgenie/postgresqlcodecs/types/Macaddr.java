@@ -53,18 +53,6 @@ public record Macaddr(byte b1, byte b2, byte b3, byte b4, byte b5, byte b6) {
         }
 
         @Override
-        public void bind(PreparedStatement ps, int index, Macaddr value) throws SQLException {
-            if (value != null) {
-                PGobject obj = new PGobject();
-                obj.setType("macaddr");
-                obj.setValue(value.toString());
-                ps.setObject(index, obj);
-            } else {
-                ps.setNull(index, java.sql.Types.OTHER);
-            }
-        }
-
-        @Override
         public void write(StringBuilder sb, Macaddr value) {
             sb.append(value);
         }
