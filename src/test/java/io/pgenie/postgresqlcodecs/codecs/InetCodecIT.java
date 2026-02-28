@@ -1,6 +1,5 @@
 package io.pgenie.postgresqlcodecs.codecs;
 
-import io.pgenie.postgresqlcodecs.arbitrary.Arbitraries;
 import io.pgenie.postgresqlcodecs.types.Inet;
 import net.jqwik.api.Arbitrary;
 import net.jqwik.api.Provide;
@@ -13,6 +12,6 @@ public class InetCodecIT extends CodecSuite<Inet> {
 
   @Provide
   Arbitrary<Inet> values() {
-    return Arbitraries.inet();
+    return net.jqwik.api.Arbitraries.randomValue(Inet::generate);
   }
 }
