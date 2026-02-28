@@ -8,6 +8,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.pgenie.postgresqlCodecs.types.Interval;
 
+import io.pgenie.postgresqlCodecs.types.Interval;
+
 public class IntervalCodecIT extends CodecITBase {
 
     @Test

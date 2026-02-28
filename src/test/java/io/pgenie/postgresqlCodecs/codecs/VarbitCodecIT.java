@@ -8,6 +8,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.pgenie.postgresqlCodecs.types.Varbit;
 
+import io.pgenie.postgresqlCodecs.types.Varbit;
+
 public class VarbitCodecIT extends CodecITBase {
 
     @Test

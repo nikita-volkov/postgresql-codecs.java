@@ -8,6 +8,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.pgenie.postgresqlCodecs.types.Macaddr;
 
+import io.pgenie.postgresqlCodecs.types.Macaddr;
+
 public class MacaddrCodecIT extends CodecITBase {
 
     private static final Macaddr MAC_08002B010203 =

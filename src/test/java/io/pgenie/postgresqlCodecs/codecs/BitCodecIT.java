@@ -8,6 +8,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.pgenie.postgresqlCodecs.types.Bit;
 
+import io.pgenie.postgresqlCodecs.types.Bit;
+
 public class BitCodecIT extends CodecITBase {
 
     @Test

@@ -8,6 +8,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.pgenie.postgresqlCodecs.types.Cidr;
 
+import io.pgenie.postgresqlCodecs.types.Cidr;
+
 public class CidrCodecIT extends CodecITBase {
 
     // 192.168.1.0/24

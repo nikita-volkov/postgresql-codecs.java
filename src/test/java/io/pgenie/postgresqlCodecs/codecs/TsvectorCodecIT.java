@@ -10,6 +10,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.pgenie.postgresqlCodecs.types.Tsvector;
 
+import io.pgenie.postgresqlCodecs.types.Tsvector;
+
 public class TsvectorCodecIT extends CodecITBase {
 
     private static Tsvector simpleTs() {

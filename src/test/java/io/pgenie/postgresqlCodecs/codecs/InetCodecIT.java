@@ -8,6 +8,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import io.pgenie.postgresqlCodecs.types.Inet;
 
+import io.pgenie.postgresqlCodecs.types.Inet;
+
 public class InetCodecIT extends CodecITBase {
 
     // 192.168.1.1/32 as int: 0xC0A80101
