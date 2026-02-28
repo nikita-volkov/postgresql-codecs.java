@@ -1,6 +1,5 @@
 package io.pgenie.postgresqlcodecs.codecs;
 
-import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.sql.Connection;
@@ -11,10 +10,13 @@ import java.util.HexFormat;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import org.postgresql.copy.CopyManager;
-import org.postgresql.core.BaseConnection;
 import org.postgresql.util.PGobject;
 import org.testcontainers.containers.PostgreSQLContainer;
+
+import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
+import io.r2dbc.postgresql.PostgresqlConnectionFactory;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * Base class for codec integration tests. Provides a shared PostgreSQL
@@ -34,6 +36,7 @@ abstract class CodecITBase {
 
     static final PostgreSQLContainer<?> pg;
     static final Connection conn;
+    static final PostgresqlConnectionFactory r2dbcFactory;
 
     static {
         pg = new PostgreSQLContainer<>("postgres:18");
@@ -50,6 +53,21 @@ abstract class CodecITBase {
         } catch (SQLException e) {
             throw new RuntimeException("Failed to open shared connection", e);
         }
+        r2dbcFactory = new PostgresqlConnectionFactory(
+                PostgresqlConnectionConfiguration.builder()
+                        .host(pg.getHost())
+                        .port(pg.getMappedPort(5432))
+                        .username(pg.getUsername())
+                        .password(pg.getPassword())
+                        .database(pg.getDatabaseName())
+                        // Force binary wire format for all result columns so that
+                        // RawBinaryCodec receives the exact binary representation.
+                        .forceBinary(true)
+                        .codecRegistrar((c, allocator, registry) -> {
+                            registry.addFirst(new RawBinaryCodec());
+                            return Mono.empty();
+                        })
+                        .build());
     }
 
     /**
@@ -88,47 +106,90 @@ abstract class CodecITBase {
     // Binary helpers
     // -----------------------------------------------------------------------
     /**
-     * Returns the binary wire bytes PostgreSQL uses for {@code value} of type
-     * {@code pgType}, obtained by inserting the value into a temporary table
-     * and reading it back via {@code COPY TO STDOUT BINARY}.
+     * Returns the binary wire bytes PostgreSQL uses for {@code value} by
+     * executing {@code SELECT $1::typeSig} via r2dbc-postgresql.
      *
      * <p>
-     * This avoids any {@code *send()} SQL functions in the query text.
+     * r2dbc-postgresql uses the binary extended-query protocol natively. With
+     * {@code forceBinary} enabled, every result column is transmitted in binary
+     * wire format. {@link RawBinaryCodec} intercepts the column before any
+     * type-specific decoding occurs and copies the raw bytes out of the Netty
+     * {@code ByteBuf}, giving us the exact binary representation without any
+     * intermediate SQL function call.
      */
     <A> byte[] pgBinaryBytes(Codec<A> codec, A value) throws Exception {
-        try (var s = conn.createStatement()) {
-            // DROP + CREATE instead of CREATE TEMP to handle connection reuse.
-            s.execute("DROP TABLE IF EXISTS _bce");
-            s.execute("CREATE TEMP TABLE _bce (v " + codec.typeSig() + ")");
+        var sb = new StringBuilder();
+        codec.write(sb, value);
+        return Mono.usingWhen(
+                r2dbcFactory.create(),
+                r2conn -> Flux.from(
+                        r2conn.createStatement("SELECT $1::" + codec.typeSig())
+                                .bind(0, sb.toString())
+                                .execute()
+                ).flatMap(result -> result.map((row, meta) -> row.get(0, byte[].class)))
+                        .single(),
+                c -> c.close()
+        ).block();
+    }
+
+    /**
+     * Passes raw binary bytes from a result column directly through to the
+     * caller, bypassing all type-specific codec logic in r2dbc-postgresql.
+     *
+     * <p>
+     * {@link #canDecode} returns {@code true} for any PostgreSQL OID in
+     * {@code FORMAT_BINARY}, ensuring that the driver requests binary result
+     * format and routes the column data here. The bytes are copied once from
+     * the Netty buffer and returned as a plain {@code byte[]}.
+     */
+    private static class RawBinaryCodec
+            implements io.r2dbc.postgresql.codec.Codec<byte[]> {
+
+        @Override
+        public boolean canDecode(int dataType,
+                io.r2dbc.postgresql.message.Format format,
+                Class<?> type) {
+            return format == io.r2dbc.postgresql.message.Format.FORMAT_BINARY
+                    && type.isAssignableFrom(byte[].class);
         }
-        try (var ps = conn.prepareStatement("INSERT INTO _bce VALUES (?)")) {
-            if (value != null) {
-                PGobject obj = new PGobject();
-                obj.setType(codec.typeSig());
-                {
-                    StringBuilder sb = new StringBuilder();
-                    codec.write(sb, value);
-                    obj.setValue(sb.toString());
-                }
-                ps.setObject(1, obj);
-            } else {
-                ps.setNull(1, java.sql.Types.OTHER);
+
+        @Override
+        public boolean canEncode(Object value) {
+            return false;
+        }
+
+        @Override
+        public boolean canEncodeNull(Class<?> type) {
+            return false;
+        }
+
+        @Override
+        public byte[] decode(io.netty.buffer.ByteBuf buffer,
+                int dataType,
+                io.r2dbc.postgresql.message.Format format,
+                Class<? extends byte[]> type) {
+            if (buffer == null) {
+                return null;
             }
-            ps.execute();
+            byte[] bytes = new byte[buffer.readableBytes()];
+            buffer.readBytes(bytes);
+            return bytes;
         }
-        var cm = new CopyManager(conn.unwrap(BaseConnection.class));
-        var baos = new ByteArrayOutputStream();
-        cm.copyOut("COPY _bce TO STDOUT BINARY", baos);
-        // COPY binary layout:
-        //   11-byte signature + 4-byte flags + 4-byte header_ext_len = 19 bytes
-        //   then per row: int16 field_count, int32 field_len, byte[field_len] data
-        var buf = ByteBuffer.wrap(baos.toByteArray()).order(ByteOrder.BIG_ENDIAN);
-        buf.position(19);        // skip file header
-        buf.getShort();          // field count (1)
-        int len = buf.getInt();  // field data length
-        byte[] result = new byte[len];
-        buf.get(result);
-        return result;
+
+        @Override
+        public io.r2dbc.postgresql.client.EncodedParameter encode(Object value) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public io.r2dbc.postgresql.client.EncodedParameter encode(Object value, int dataType) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public io.r2dbc.postgresql.client.EncodedParameter encodeNull() {
+            throw new UnsupportedOperationException();
+        }
     }
 
     /**
