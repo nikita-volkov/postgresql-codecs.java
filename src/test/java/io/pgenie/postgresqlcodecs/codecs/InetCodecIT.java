@@ -5,8 +5,7 @@ import io.pgenie.postgresqlcodecs.types.Inet;
 
 public class InetCodecIT extends CodecSuite<Inet> {
 
-    public InetCodecIT() {
-        super(Inet.CODEC, Arbitrary.INET, Inet.class);
-    }
-
+  public InetCodecIT() {
+    super(Inet.CODEC, Arbitrary.INET, Inet.class);
+  }
 }
