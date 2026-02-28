@@ -20,6 +20,11 @@ public final class EnumCodec<E> implements Codec<E> {
     }
 
     @Override
+    public String schema() {
+        return schema;
+    }
+
+    @Override
     public String name() {
         return pgName;
     }

@@ -7,10 +7,12 @@ import java.util.function.Function;
 /**
  * Codec for PostgreSQL composite (row) types.
  *
- * <p>Supports both the PostgreSQL text literal format {@code (val1,val2,...)}
- * and the binary composite wire format.
+ * <p>
+ * Supports both the PostgreSQL text literal format {@code (val1,val2,...)} and
+ * the binary composite wire format.
  *
- * <p><b>Binary format</b>:
+ * <p>
+ * <b>Binary format</b>:
  * <pre>
  * int32  field_count
  * [for each field]:
@@ -80,6 +82,11 @@ public final class CompositeCodec<Z> implements Codec<Z> {
         this.pgName = name;
         this.constructor = construct;
         this.fields = new Field[]{fieldA, fieldB, fieldC, fieldD, fieldE};
+    }
+
+    @Override
+    public String schema() {
+        return schema;
     }
 
     @Override
@@ -173,11 +180,11 @@ public final class CompositeCodec<Z> implements Codec<Z> {
     // -----------------------------------------------------------------------
     // Binary wire format
     // -----------------------------------------------------------------------
-
     /**
      * Encodes the composite value in the PostgreSQL binary composite format.
      *
-     * <p>Layout:
+     * <p>
+     * Layout:
      * <pre>
      * int32  field_count
      * [for each field]:
@@ -201,7 +208,9 @@ public final class CompositeCodec<Z> implements Codec<Z> {
         int totalSize = 4;
         for (byte[] ef : encodedFields) {
             totalSize += 4 + 4; // oid + length
-            if (ef != null) totalSize += ef.length;
+            if (ef != null) {
+                totalSize += ef.length;
+            }
         }
 
         ByteBuffer buf = ByteBuffer.allocate(totalSize).order(ByteOrder.BIG_ENDIAN);
@@ -233,7 +242,7 @@ public final class CompositeCodec<Z> implements Codec<Z> {
         int fieldCount = buf.getInt();
         if (fieldCount != fields.length) {
             throw new Codec.ParseException(
-                "Binary composite field count mismatch: expected " + fields.length + ", got " + fieldCount);
+                    "Binary composite field count mismatch: expected " + fields.length + ", got " + fieldCount);
         }
 
         Object fn = constructor;
@@ -253,7 +262,6 @@ public final class CompositeCodec<Z> implements Codec<Z> {
     // -----------------------------------------------------------------------
     // row(...) helper
     // -----------------------------------------------------------------------
-
     /**
      * Writes the value in {@code row(...)} syntax, which handles nested
      * composites better than the quoted-literal form.
@@ -319,8 +327,8 @@ public final class CompositeCodec<Z> implements Codec<Z> {
     }
 
     /**
-     * Writes a scalar literal in the row(...) syntax context. Single-quotes
-     * the value and escapes embedded single quotes by doubling them.
+     * Writes a scalar literal in the row(...) syntax context. Single-quotes the
+     * value and escapes embedded single quotes by doubling them.
      */
     private static void writeRowLiteral(StringBuilder sb, StringBuilder fieldText) {
         sb.append('\'');
