@@ -266,7 +266,8 @@ public class ArrayCodecIT extends CodecITBase {
     @Test
     void inetArrayRoundTrip() throws Exception {
         var codec = new ArrayCodec<>("_inet", Codec.INET);
-        var input = List.of("192.168.1.1", "10.0.0.1");
+        // 192.168.1.1/32 = 0xC0A80101, 10.0.0.1/32 = 0x0A000001
+        var input = List.<Inet>of(new Inet.V4(0xC0A80101, (byte) 32), new Inet.V4(0x0A000001, (byte) 32));
         try (var conn = connect();
              var ps = conn.prepareStatement("SELECT ?::inet[]")) {
             codec.bind(ps, 1, input);

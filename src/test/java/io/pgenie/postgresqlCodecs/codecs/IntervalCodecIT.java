@@ -1,22 +1,46 @@
 package io.pgenie.postgresqlCodecs.codecs;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 public class IntervalCodecIT extends CodecITBase {
 
     @Test
-    void intervalRoundTrip() throws Exception {
-        // PostgreSQL normalizes intervals; "1 year 2 mons 3 days" is canonical
-        String text = roundTripText(Codec.INTERVAL, "interval", "1 year 2 mons 3 days");
-        assertNotNull(text);
-        assertTrue(text.contains("1 year"));
+    void intervalRoundTripYearMonthDay() throws Exception {
+        // 1 year 2 months 3 days = 14 months, 3 days, 0 micros
+        var interval = new Interval(14, 3, 0);
+        assertEquals(interval, roundTrip(Codec.INTERVAL, interval));
+    }
+
+    @Test
+    void intervalRoundTripTime() throws Exception {
+        // 4 hours 5 minutes 6 seconds = 14706 seconds = 14706000000 microseconds
+        var interval = new Interval(0, 0, 14_706_000_000L);
+        assertEquals(interval, roundTrip(Codec.INTERVAL, interval));
+    }
+
+    @Test
+    void intervalRoundTripNegative() throws Exception {
+        var interval = new Interval(-6, -1, -3_600_000_000L);
+        assertEquals(interval, roundTrip(Codec.INTERVAL, interval));
     }
 
     @Test
     void intervalNull() throws Exception {
-        assertNull(roundTripText(Codec.INTERVAL, "interval", null));
+        assertNull(roundTrip(Codec.INTERVAL, null));
     }
+
+    @Test
+    void intervalOid() throws Exception {
+        assertOid(Codec.INTERVAL);
+    }
+
+    @Test
+    void intervalBinary() throws Exception {
+        assertBinaryRoundTrip(Codec.INTERVAL, "interval", new Interval(14, 3, 14_706_000_000L));
+        assertBinaryRoundTrip(Codec.INTERVAL, "interval", new Interval(0, 0, 0));
+        assertBinaryRoundTrip(Codec.INTERVAL, "interval", new Interval(-12, 0, -1_000_000L));
+    }
+
 }

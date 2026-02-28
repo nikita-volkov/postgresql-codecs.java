@@ -7,7 +7,7 @@ import java.sql.Types;
 
 import org.postgresql.util.PGobject;
 
-final class Macaddr8Codec implements Codec<String> {
+final class Macaddr8Codec implements Codec<Macaddr8> {
 
     static final Macaddr8Codec instance = new Macaddr8Codec();
 
@@ -29,43 +29,61 @@ final class Macaddr8Codec implements Codec<String> {
     }
 
     @Override
-    public void bind(PreparedStatement ps, int index, String value) throws SQLException {
+    public void bind(PreparedStatement ps, int index, Macaddr8 value) throws SQLException {
         if (value != null) {
             PGobject obj = new PGobject();
             obj.setType("macaddr8");
-            obj.setValue(value);
+            obj.setValue(value.toString());
             ps.setObject(index, obj);
         } else {
             ps.setNull(index, Types.OTHER);
         }
     }
 
-    public void write(StringBuilder sb, String value) {
+    @Override
+    public void write(StringBuilder sb, Macaddr8 value) {
         sb.append(value);
     }
 
     @Override
-    public Codec.ParsingResult<String> parse(CharSequence input, int offset) throws Codec.ParseException {
-        return new Codec.ParsingResult<>(input.subSequence(offset, input.length()).toString(), input.length());
+    public Codec.ParsingResult<Macaddr8> parse(CharSequence input, int offset) throws Codec.ParseException {
+        // Format: xx:xx:xx:xx:xx:xx:xx:xx
+        String s = input.subSequence(offset, input.length()).toString().trim();
+        String[] parts = s.split(":");
+        if (parts.length != 8) {
+            throw new Codec.ParseException(input, offset, "Invalid macaddr8: " + s);
+        }
+        try {
+            byte b1 = (byte) Integer.parseInt(parts[0], 16);
+            byte b2 = (byte) Integer.parseInt(parts[1], 16);
+            byte b3 = (byte) Integer.parseInt(parts[2], 16);
+            byte b4 = (byte) Integer.parseInt(parts[3], 16);
+            byte b5 = (byte) Integer.parseInt(parts[4], 16);
+            byte b6 = (byte) Integer.parseInt(parts[5], 16);
+            byte b7 = (byte) Integer.parseInt(parts[6], 16);
+            byte b8 = (byte) Integer.parseInt(parts[7], 16);
+            return new Codec.ParsingResult<>(new Macaddr8(b1, b2, b3, b4, b5, b6, b7, b8), input.length());
+        } catch (NumberFormatException e) {
+            throw new Codec.ParseException(input, offset, "Invalid macaddr8 hex: " + s);
+        }
     }
 
     @Override
-    public byte[] encode(String value) {
-        String[] parts = value.split(":");
-        if (parts.length != 8) throw new RuntimeException("Invalid macaddr8: " + value);
-        byte[] b = new byte[8];
-        for (int i = 0; i < 8; i++) b[i] = (byte) Integer.parseInt(parts[i], 16);
-        return b;
+    public byte[] encode(Macaddr8 value) {
+        return new byte[]{
+            value.b1(), value.b2(), value.b3(), value.b4(),
+            value.b5(), value.b6(), value.b7(), value.b8()
+        };
     }
 
     @Override
-    public String decodeBinary(ByteBuffer buf, int length) throws Codec.ParseException {
-        if (length != 8) throw new Codec.ParseException("Binary macaddr8 must be 8 bytes, got " + length);
-        byte[] b = new byte[8];
-        buf.get(b);
-        return String.format("%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
-                b[0] & 0xff, b[1] & 0xff, b[2] & 0xff, b[3] & 0xff,
-                b[4] & 0xff, b[5] & 0xff, b[6] & 0xff, b[7] & 0xff);
+    public Macaddr8 decodeBinary(ByteBuffer buf, int length) throws Codec.ParseException {
+        if (length != 8) {
+            throw new Codec.ParseException("Binary macaddr8 must be 8 bytes, got " + length);
+        }
+        return new Macaddr8(
+                buf.get(), buf.get(), buf.get(), buf.get(),
+                buf.get(), buf.get(), buf.get(), buf.get());
     }
 
 }

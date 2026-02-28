@@ -39,16 +39,16 @@ public interface Codec<A> {
     public static final Codec<java.time.OffsetTime> TIMETZ = TimetzCodec.instance;
     public static final Codec<java.time.LocalDateTime> TIMESTAMP = TimestampCodec.instance;
     public static final Codec<java.time.OffsetDateTime> TIMESTAMPTZ = TimestamptzCodec.instance;
-    public static final Codec<String> INTERVAL = IntervalCodec.instance;
+    public static final Codec<Interval> INTERVAL = IntervalCodec.instance;
     public static final Codec<java.util.UUID> UUID = UuidCodec.instance;
     public static final Codec<String> JSON = JsonCodec.instance;
     public static final Codec<String> JSONB = JsonbCodec.instance;
     public static final Codec<Long> OID = OidCodec.instance;
     public static final Codec<String> MONEY = MoneyCodec.instance;
-    public static final Codec<String> INET = InetCodec.instance;
-    public static final Codec<String> CIDR = CidrCodec.instance;
-    public static final Codec<String> MACADDR = MacaddrCodec.instance;
-    public static final Codec<String> MACADDR8 = Macaddr8Codec.instance;
+    public static final Codec<Inet> INET = InetCodec.instance;
+    public static final Codec<Cidr> CIDR = CidrCodec.instance;
+    public static final Codec<Macaddr> MACADDR = MacaddrCodec.instance;
+    public static final Codec<Macaddr8> MACADDR8 = Macaddr8Codec.instance;
     public static final Codec<org.postgresql.geometric.PGpoint> POINT = PointCodec.instance;
     public static final Codec<org.postgresql.geometric.PGline> LINE = LineCodec.instance;
     public static final Codec<org.postgresql.geometric.PGlseg> LSEG = LsegCodec.instance;
@@ -56,9 +56,9 @@ public interface Codec<A> {
     public static final Codec<org.postgresql.geometric.PGpath> PATH = PathCodec.instance;
     public static final Codec<org.postgresql.geometric.PGpolygon> POLYGON = PolygonCodec.instance;
     public static final Codec<org.postgresql.geometric.PGcircle> CIRCLE = CircleCodec.instance;
-    public static final Codec<String> BIT = BitCodec.instance;
-    public static final Codec<String> VARBIT = VarbitCodec.instance;
-    public static final Codec<String> TSVECTOR = TsvectorCodec.instance;
+    public static final Codec<Bit> BIT = BitCodec.instance;
+    public static final Codec<Varbit> VARBIT = VarbitCodec.instance;
+    public static final Codec<Tsvector> TSVECTOR = TsvectorCodec.instance;
 
     // -----------------------------------------------------------------------
     // Type metadata
