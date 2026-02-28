@@ -5,6 +5,8 @@ import java.time.LocalTime;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class TimeCodecIT extends CodecITBase {
 
@@ -37,6 +39,18 @@ public class TimeCodecIT extends CodecITBase {
         assertBinaryRoundTrip(Codec.TIME, "time", LocalTime.NOON);
         assertBinaryRoundTrip(Codec.TIME, "time", LocalTime.of(13, 45, 30, 123456000));
         assertBinaryRoundTrip(Codec.TIME, "time", LocalTime.of(23, 59, 59, 999999000));
+    }
+
+    @ParameterizedTest
+    @MethodSource("io.pgenie.postgresqlCodecs.codecs.Generators#times")
+    void timePropertyRoundTrip(LocalTime value) throws Exception {
+        assertEquals(value, roundTrip(Codec.TIME, value));
+    }
+
+    @ParameterizedTest
+    @MethodSource("io.pgenie.postgresqlCodecs.codecs.Generators#times")
+    void timePropertyBinaryRoundTrip(LocalTime value) throws Exception {
+        assertBinaryRoundTrip(Codec.TIME, "time", value);
     }
 
 }

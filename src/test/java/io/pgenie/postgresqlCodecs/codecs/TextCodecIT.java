@@ -3,6 +3,8 @@ package io.pgenie.postgresqlCodecs.codecs;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class TextCodecIT extends CodecITBase {
 
@@ -39,6 +41,18 @@ public class TextCodecIT extends CodecITBase {
         assertBinaryRoundTrip(Codec.TEXT, "text", "hello");
         assertBinaryRoundTrip(Codec.TEXT, "text", "Unicode: \u00e9\u4e2d\u6587");
         assertBinaryRoundTrip(Codec.TEXT, "text", "line1\nline2");
+    }
+
+    @ParameterizedTest
+    @MethodSource("io.pgenie.postgresqlCodecs.codecs.Generators#texts")
+    void textPropertyRoundTrip(String value) throws Exception {
+        assertEquals(value, roundTrip(Codec.TEXT, value));
+    }
+
+    @ParameterizedTest
+    @MethodSource("io.pgenie.postgresqlCodecs.codecs.Generators#texts")
+    void textPropertyBinaryRoundTrip(String value) throws Exception {
+        assertBinaryRoundTrip(Codec.TEXT, "text", value);
     }
 
 }

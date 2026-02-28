@@ -3,6 +3,8 @@ package io.pgenie.postgresqlCodecs.codecs;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class OidCodecIT extends CodecITBase {
 
@@ -20,6 +22,12 @@ public class OidCodecIT extends CodecITBase {
     @Test
     void oidOid() throws Exception {
         assertOid(Codec.OID);
+    }
+
+    @ParameterizedTest
+    @MethodSource("io.pgenie.postgresqlCodecs.codecs.Generators#oids")
+    void oidPropertyRoundTrip(Long value) throws Exception {
+        assertEquals(value, roundTrip(Codec.OID, value));
     }
 
 }

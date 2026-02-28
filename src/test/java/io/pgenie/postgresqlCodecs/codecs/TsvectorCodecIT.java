@@ -5,6 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import io.pgenie.postgresqlCodecs.types.Tsvector;
 
 import io.pgenie.postgresqlCodecs.types.Tsvector;
 
@@ -46,6 +50,18 @@ public class TsvectorCodecIT extends CodecITBase {
     @Test
     void tsvectorBinary() throws Exception {
         assertBinaryRoundTrip(Codec.TSVECTOR, "tsvector", simpleTs());
+    }
+
+    @ParameterizedTest
+    @MethodSource("io.pgenie.postgresqlCodecs.codecs.Generators#tsvectors")
+    void tsvectorPropertyRoundTrip(Tsvector value) throws Exception {
+        assertEquals(value, roundTrip(Codec.TSVECTOR, value));
+    }
+
+    @ParameterizedTest
+    @MethodSource("io.pgenie.postgresqlCodecs.codecs.Generators#tsvectors")
+    void tsvectorPropertyBinaryRoundTrip(Tsvector value) throws Exception {
+        assertBinaryRoundTrip(Codec.TSVECTOR, "tsvector", value);
     }
 
 }

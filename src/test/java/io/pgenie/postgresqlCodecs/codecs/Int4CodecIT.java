@@ -3,6 +3,8 @@ package io.pgenie.postgresqlCodecs.codecs;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class Int4CodecIT extends CodecITBase {
 
@@ -34,6 +36,18 @@ public class Int4CodecIT extends CodecITBase {
         assertBinaryRoundTrip(Codec.INT4, "int4", -1);
         assertBinaryRoundTrip(Codec.INT4, "int4", Integer.MAX_VALUE);
         assertBinaryRoundTrip(Codec.INT4, "int4", Integer.MIN_VALUE);
+    }
+
+    @ParameterizedTest
+    @MethodSource("io.pgenie.postgresqlCodecs.codecs.Generators#int4s")
+    void int4PropertyRoundTrip(Integer value) throws Exception {
+        assertEquals(value, roundTrip(Codec.INT4, value));
+    }
+
+    @ParameterizedTest
+    @MethodSource("io.pgenie.postgresqlCodecs.codecs.Generators#int4s")
+    void int4PropertyBinaryRoundTrip(Integer value) throws Exception {
+        assertBinaryRoundTrip(Codec.INT4, "int4", value);
     }
 
 }

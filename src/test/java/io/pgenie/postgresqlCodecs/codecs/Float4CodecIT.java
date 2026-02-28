@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class Float4CodecIT extends CodecITBase {
 
@@ -43,6 +45,13 @@ public class Float4CodecIT extends CodecITBase {
         assertBinaryRoundTrip(Codec.FLOAT4, "float4", 0.0f);
         assertBinaryRoundTrip(Codec.FLOAT4, "float4", 3.14f);
         assertBinaryRoundTrip(Codec.FLOAT4, "float4", -1.5f);
+    }
+
+    /** Property: finite float4 values round-trip through the binary codec exactly. */
+    @ParameterizedTest
+    @MethodSource("io.pgenie.postgresqlCodecs.codecs.Generators#float4s")
+    void float4PropertyBinaryRoundTrip(Float value) throws Exception {
+        assertBinaryRoundTrip(Codec.FLOAT4, "float4", value);
     }
 
 }

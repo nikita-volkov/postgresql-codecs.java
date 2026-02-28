@@ -3,6 +3,10 @@ package io.pgenie.postgresqlCodecs.codecs;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import io.pgenie.postgresqlCodecs.types.Cidr;
 
 import io.pgenie.postgresqlCodecs.types.Cidr;
 
@@ -39,6 +43,18 @@ public class CidrCodecIT extends CodecITBase {
     void cidrIpv6Binary() throws Exception {
         assertBinaryRoundTrip(Codec.CIDR, "cidr", CIDR_IPV6_DEFAULT);
         assertBinaryRoundTrip(Codec.CIDR, "cidr", new Cidr.V6(0x20010db8, 0, 0, 0, (byte) 32));
+    }
+
+    @ParameterizedTest
+    @MethodSource("io.pgenie.postgresqlCodecs.codecs.Generators#cidrs")
+    void cidrPropertyRoundTrip(Cidr value) throws Exception {
+        assertEquals(value, roundTrip(Codec.CIDR, value));
+    }
+
+    @ParameterizedTest
+    @MethodSource("io.pgenie.postgresqlCodecs.codecs.Generators#cidrs")
+    void cidrPropertyBinaryRoundTrip(Cidr value) throws Exception {
+        assertBinaryRoundTrip(Codec.CIDR, "cidr", value);
     }
 
 }

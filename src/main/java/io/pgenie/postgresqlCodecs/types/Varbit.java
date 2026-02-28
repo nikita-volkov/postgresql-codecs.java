@@ -1,6 +1,7 @@
 package io.pgenie.postgresqlCodecs.types;
 
 import java.util.Arrays;
+import java.util.Random;
 
 /**
  * PostgreSQL {@code varbit(n)} type. Variable-length bit string.
@@ -42,6 +43,25 @@ public final class Varbit {
                 if (pos < n && s.charAt(pos) == '1') b |= (0x80 >>> bit);
             }
             data[i] = (byte) b;
+        }
+        return new Varbit(n, data);
+    }
+
+    /**
+     * Generates a random variable-length {@code Varbit} value with 0–64 bits.
+     *
+     * <p>The number of bits is chosen uniformly from [0, 64]; the bit content is
+     * uniformly random, covering the full bit-pattern space for each length.
+     */
+    public static Varbit generate(Random r) {
+        int n = r.nextInt(0, 65);
+        if (n == 0) return new Varbit(0, new byte[0]);
+        int nb = (n + 7) / 8;
+        byte[] data = new byte[nb];
+        r.nextBytes(data);
+        // Zero out the padding bits in the last byte so that equals() is stable.
+        if (n % 8 != 0) {
+            data[nb - 1] &= (byte) (0xFF << (8 - (n % 8)));
         }
         return new Varbit(n, data);
     }

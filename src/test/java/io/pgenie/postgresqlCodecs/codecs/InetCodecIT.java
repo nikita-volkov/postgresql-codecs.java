@@ -3,6 +3,10 @@ package io.pgenie.postgresqlCodecs.codecs;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+
+import io.pgenie.postgresqlCodecs.types.Inet;
 
 import io.pgenie.postgresqlCodecs.types.Inet;
 
@@ -60,6 +64,18 @@ public class InetCodecIT extends CodecITBase {
     void inetIpv6Binary() throws Exception {
         assertBinaryRoundTrip(Codec.INET, "inet", INET_IPV6_LOOPBACK);
         assertBinaryRoundTrip(Codec.INET, "inet", INET_IPV6_DOC);
+    }
+
+    @ParameterizedTest
+    @MethodSource("io.pgenie.postgresqlCodecs.codecs.Generators#inets")
+    void inetPropertyRoundTrip(Inet value) throws Exception {
+        assertEquals(value, roundTrip(Codec.INET, value));
+    }
+
+    @ParameterizedTest
+    @MethodSource("io.pgenie.postgresqlCodecs.codecs.Generators#inets")
+    void inetPropertyBinaryRoundTrip(Inet value) throws Exception {
+        assertBinaryRoundTrip(Codec.INET, "inet", value);
     }
 
 }

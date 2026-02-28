@@ -17,26 +17,36 @@ import org.testcontainers.containers.PostgreSQLContainer;
 
 /**
  * Base class for codec integration tests. Provides a shared PostgreSQL
- * container and helper methods for round-trip testing.
+ * container and a single reused JDBC connection for all tests.
  *
- * The container is started once per JVM via a static initializer and cleaned up
- * automatically by the TestContainers resource reaper (Ryuk) on JVM exit.
+ * <p>Both the container and the connection are started once per JVM via a
+ * static initializer and cleaned up automatically by the TestContainers
+ * resource reaper (Ryuk) on JVM exit.
+ *
+ * <p>Reusing a single connection across tests avoids the overhead of TCP
+ * handshake and PostgreSQL session setup on every round-trip, which is the
+ * dominant cost when running many property-based tests.
  */
 abstract class CodecITBase {
 
     static final PostgreSQLContainer<?> pg;
+    static final Connection conn;
 
     static {
         pg = new PostgreSQLContainer<>("postgres:18");
         pg.start();
-    }
-
-    Connection connect() throws SQLException {
-        var properties = new java.util.Properties();
-        properties.setProperty("user", pg.getUsername());
-        properties.setProperty("password", pg.getPassword());
-        properties.setProperty("binaryTransfer", "true");
-        return DriverManager.getConnection(pg.getJdbcUrl(), properties);
+        try {
+            var props = new java.util.Properties();
+            props.setProperty("user", pg.getUsername());
+            props.setProperty("password", pg.getPassword());
+            // Disable server-side prepared-statement caching so that all result
+            // columns remain in text format (avoids rs.getString() returning
+            // "[B@…" for bytea columns after the binary-mode switch threshold).
+            props.setProperty("prepareThreshold", "0");
+            conn = DriverManager.getConnection(pg.getJdbcUrl(), props);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to open shared connection", e);
+        }
     }
 
     /**
@@ -45,7 +55,7 @@ abstract class CodecITBase {
      * parses it.
      */
     <A> A roundTrip(Codec<A> codec, A value) throws Exception {
-        try (var conn = connect(); var ps = conn.prepareStatement("SELECT ?::" + codec.typeSig())) {
+        try (var ps = conn.prepareStatement("SELECT ?::" + codec.typeSig())) {
             codec.bind(ps, 1, value);
             try (ResultSet rs = ps.executeQuery()) {
                 assertTrue(rs.next(), "Expected a result row");
@@ -64,7 +74,7 @@ abstract class CodecITBase {
      * when the Java type doesn't have a natural equals, like byte[]).
      */
     <A> String roundTripText(Codec<A> codec, String castType, A value) throws Exception {
-        try (var conn = connect(); var ps = conn.prepareStatement("SELECT ?::" + castType)) {
+        try (var ps = conn.prepareStatement("SELECT ?::" + castType)) {
             codec.bind(ps, 1, value);
             try (ResultSet rs = ps.executeQuery()) {
                 assertTrue(rs.next(), "Expected a result row");
@@ -85,28 +95,28 @@ abstract class CodecITBase {
      * This avoids any {@code *send()} SQL functions in the query text.
      */
     <A> byte[] pgBinaryBytes(Codec<A> codec, String pgType, A value) throws Exception {
-        try (var conn = connect()) {
-            try (var s = conn.createStatement()) {
-                s.execute("CREATE TEMP TABLE _bce (v " + pgType + ")");
-            }
-            try (var ps = conn.prepareStatement("INSERT INTO _bce VALUES (?)")) {
-                codec.bind(ps, 1, value);
-                ps.execute();
-            }
-            var cm = new CopyManager(conn.unwrap(BaseConnection.class));
-            var baos = new ByteArrayOutputStream();
-            cm.copyOut("COPY _bce TO STDOUT BINARY", baos);
-            // COPY binary layout:
-            //   11-byte signature + 4-byte flags + 4-byte header_ext_len = 19 bytes
-            //   then per row: int16 field_count, int32 field_len, byte[field_len] data
-            var buf = ByteBuffer.wrap(baos.toByteArray()).order(ByteOrder.BIG_ENDIAN);
-            buf.position(19);        // skip file header
-            buf.getShort();          // field count (1)
-            int len = buf.getInt();  // field data length
-            byte[] result = new byte[len];
-            buf.get(result);
-            return result;
+        try (var s = conn.createStatement()) {
+            // DROP + CREATE instead of CREATE TEMP to handle connection reuse.
+            s.execute("DROP TABLE IF EXISTS _bce");
+            s.execute("CREATE TEMP TABLE _bce (v " + pgType + ")");
         }
+        try (var ps = conn.prepareStatement("INSERT INTO _bce VALUES (?)")) {
+            codec.bind(ps, 1, value);
+            ps.execute();
+        }
+        var cm = new CopyManager(conn.unwrap(BaseConnection.class));
+        var baos = new ByteArrayOutputStream();
+        cm.copyOut("COPY _bce TO STDOUT BINARY", baos);
+        // COPY binary layout:
+        //   11-byte signature + 4-byte flags + 4-byte header_ext_len = 19 bytes
+        //   then per row: int16 field_count, int32 field_len, byte[field_len] data
+        var buf = ByteBuffer.wrap(baos.toByteArray()).order(ByteOrder.BIG_ENDIAN);
+        buf.position(19);        // skip file header
+        buf.getShort();          // field count (1)
+        int len = buf.getInt();  // field data length
+        byte[] result = new byte[len];
+        buf.get(result);
+        return result;
     }
 
     /**
@@ -146,7 +156,7 @@ abstract class CodecITBase {
         if (codec.oid() == 0) {
             return;
         }
-        try (var conn = connect(); var ps = conn.prepareStatement("SELECT oid::int FROM pg_type WHERE typname = ?")) {
+        try (var ps = conn.prepareStatement("SELECT oid::int FROM pg_type WHERE typname = ?")) {
             // TODO: Account for schema-qualified types names
             ps.setString(1, codec.name());
             try (ResultSet rs = ps.executeQuery()) {

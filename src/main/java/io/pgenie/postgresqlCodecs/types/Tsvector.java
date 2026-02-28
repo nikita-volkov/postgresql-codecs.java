@@ -136,4 +136,25 @@ public final class Tsvector {
         return "Tsvector" + lexemes;
     }
 
+    /**
+     * Generates a random {@code Tsvector} with 1–4 lowercase alphabetic lexemes
+     * and no position information.
+     *
+     * <p>Position-free tsvectors are the simplest canonical form and are
+     * unambiguously round-trippable through PostgreSQL.
+     */
+    public static Tsvector generate(java.util.Random r) {
+        int n = r.nextInt(1, 5);
+        var entries = new ArrayList<Map.Entry<String, List<Position>>>(n);
+        for (int i = 0; i < n; i++) {
+            int len = r.nextInt(1, 9);
+            var sb = new StringBuilder(len);
+            for (int j = 0; j < len; j++) {
+                sb.append((char) ('a' + r.nextInt(0, 26)));
+            }
+            entries.add(Map.entry(sb.toString(), List.of()));
+        }
+        return Tsvector.of(entries);
+    }
+
 }

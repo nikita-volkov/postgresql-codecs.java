@@ -3,16 +3,20 @@ package io.pgenie.postgresqlCodecs.codecs;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.postgresql.geometric.PGpath;
+import org.postgresql.geometric.PGpoint;
 
 public class PathCodecIT extends CodecITBase {
 
     @Test
     void pathBinary() throws Exception {
-        var openPath = new org.postgresql.geometric.PGpath(
-                new org.postgresql.geometric.PGpoint[]{
-                        new org.postgresql.geometric.PGpoint(0, 0),
-                        new org.postgresql.geometric.PGpoint(1, 0),
-                        new org.postgresql.geometric.PGpoint(1, 1)
+        var openPath = new PGpath(
+                new PGpoint[]{
+                        new PGpoint(0, 0),
+                        new PGpoint(1, 0),
+                        new PGpoint(1, 1)
                 }, true);
         byte[] pgBytes = pgBinaryBytes(Codec.PATH, "path", openPath);
         assertEquals(hex(pgBytes), hex(Codec.PATH.encode(openPath)));
@@ -20,4 +24,11 @@ public class PathCodecIT extends CodecITBase {
         assertEquals(3, decoded.points.length);
         assertTrue(decoded.open);
     }
+
+    @ParameterizedTest
+    @MethodSource("io.pgenie.postgresqlCodecs.codecs.Generators#paths")
+    void pathPropertyBinaryRoundTrip(PGpath value) throws Exception {
+        assertBinaryRoundTrip(Codec.PATH, "path", value);
+    }
+
 }

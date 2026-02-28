@@ -11,8 +11,7 @@ public class CompositeCodecIT extends CodecITBase {
 
     @Test
     void compositeRoundTrip() throws Exception {
-        try (var conn = connect();
-             var stmt = conn.createStatement()) {
+        try (var stmt = conn.createStatement()) {
             stmt.execute("""
                     DO $$ BEGIN
                         CREATE TYPE test_comp AS (a int4, b text, c bool);
@@ -29,8 +28,7 @@ public class CompositeCodecIT extends CodecITBase {
                 new CompositeCodec.Field<>("c", TestComp::c, Codec.BOOL));
 
         var input = new TestComp(42, "hello world", true);
-        try (var conn = connect();
-             var ps = conn.prepareStatement("SELECT ?::test_comp")) {
+        try (var ps = conn.prepareStatement("SELECT ?::test_comp")) {
             codec.bind(ps, 1, input);
             try (ResultSet rs = ps.executeQuery()) {
                 assertTrue(rs.next());
@@ -46,8 +44,7 @@ public class CompositeCodecIT extends CodecITBase {
 
     @Test
     void compositeWithNullFields() throws Exception {
-        try (var conn = connect();
-             var stmt = conn.createStatement()) {
+        try (var stmt = conn.createStatement()) {
             stmt.execute("""
                     DO $$ BEGIN
                         CREATE TYPE test_comp2 AS (a int4, b text);
@@ -63,8 +60,7 @@ public class CompositeCodecIT extends CodecITBase {
                 new CompositeCodec.Field<>("b", TestComp2::b, Codec.TEXT));
 
         var input = new TestComp2(null, "hello");
-        try (var conn = connect();
-             var ps = conn.prepareStatement("SELECT ?::test_comp2")) {
+        try (var ps = conn.prepareStatement("SELECT ?::test_comp2")) {
             codec.bind(ps, 1, input);
             try (ResultSet rs = ps.executeQuery()) {
                 assertTrue(rs.next());
@@ -79,8 +75,7 @@ public class CompositeCodecIT extends CodecITBase {
 
     @Test
     void compositeWithSpecialChars() throws Exception {
-        try (var conn = connect();
-             var stmt = conn.createStatement()) {
+        try (var stmt = conn.createStatement()) {
             stmt.execute("""
                     DO $$ BEGIN
                         CREATE TYPE test_comp3 AS (a text, b text);
@@ -96,8 +91,7 @@ public class CompositeCodecIT extends CodecITBase {
                 new CompositeCodec.Field<>("b", TestComp3::b, Codec.TEXT));
 
         var input = new TestComp3("hello, world", "she said \"hi\"");
-        try (var conn = connect();
-             var ps = conn.prepareStatement("SELECT ?::test_comp3")) {
+        try (var ps = conn.prepareStatement("SELECT ?::test_comp3")) {
             codec.bind(ps, 1, input);
             try (ResultSet rs = ps.executeQuery()) {
                 assertTrue(rs.next());
@@ -112,8 +106,7 @@ public class CompositeCodecIT extends CodecITBase {
 
     @Test
     void compositeNull() throws Exception {
-        try (var conn = connect();
-             var stmt = conn.createStatement()) {
+        try (var stmt = conn.createStatement()) {
             stmt.execute("""
                     DO $$ BEGIN
                         CREATE TYPE test_comp4 AS (a int4, b text);
@@ -128,8 +121,7 @@ public class CompositeCodecIT extends CodecITBase {
                 new CompositeCodec.Field<>("a", TestComp4::a, Codec.INT4),
                 new CompositeCodec.Field<>("b", TestComp4::b, Codec.TEXT));
 
-        try (var conn = connect();
-             var ps = conn.prepareStatement("SELECT ?::test_comp4")) {
+        try (var ps = conn.prepareStatement("SELECT ?::test_comp4")) {
             codec.bind(ps, 1, null);
             try (ResultSet rs = ps.executeQuery()) {
                 assertTrue(rs.next());
@@ -140,8 +132,7 @@ public class CompositeCodecIT extends CodecITBase {
 
     @Test
     void compositeWriteAsRow() throws Exception {
-        try (var conn = connect();
-             var stmt = conn.createStatement()) {
+        try (var stmt = conn.createStatement()) {
             stmt.execute("""
                     DO $$ BEGIN
                         CREATE TYPE test_row_comp AS (x int4, y text);
@@ -164,8 +155,7 @@ public class CompositeCodecIT extends CodecITBase {
         assertTrue(rowExpr.endsWith(")"));
 
         // Verify it works as SQL by executing it
-        try (var conn = connect();
-             var stmt = conn.createStatement()) {
+        try (var stmt = conn.createStatement()) {
             try (ResultSet rs = stmt.executeQuery(
                     "SELECT (" + rowExpr + "::test_row_comp).*")) {
                 assertTrue(rs.next());
@@ -177,8 +167,7 @@ public class CompositeCodecIT extends CodecITBase {
 
     @Test
     void arrayOfCompositesRoundTrip() throws Exception {
-        try (var conn = connect();
-             var stmt = conn.createStatement()) {
+        try (var stmt = conn.createStatement()) {
             stmt.execute("""
                     DO $$ BEGIN
                         CREATE TYPE test_arr_comp AS (id int4, name text);
@@ -195,8 +184,7 @@ public class CompositeCodecIT extends CodecITBase {
         var arrayCodec = new ArrayCodec<>("_test_arr_comp", elemCodec);
 
         var input = List.of(new ArrComp(1, "Alice"), new ArrComp(2, "Bob"));
-        try (var conn = connect();
-             var ps = conn.prepareStatement("SELECT ?::test_arr_comp[]")) {
+        try (var ps = conn.prepareStatement("SELECT ?::test_arr_comp[]")) {
             arrayCodec.bind(ps, 1, input);
             try (ResultSet rs = ps.executeQuery()) {
                 assertTrue(rs.next());

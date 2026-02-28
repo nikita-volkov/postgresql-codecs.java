@@ -1,6 +1,7 @@
 package io.pgenie.postgresqlCodecs.types;
 
 import java.util.Arrays;
+import java.util.Random;
 
 /**
  * PostgreSQL {@code bit(n)} type. Fixed-length bit string.
@@ -42,6 +43,24 @@ public final class Bit {
                 if (pos < n && s.charAt(pos) == '1') b |= (0x80 >>> bit);
             }
             data[i] = (byte) b;
+        }
+        return new Bit(n, data);
+    }
+
+    /**
+     * Generates a random fixed-length {@code Bit} value with 1–64 bits.
+     *
+     * <p>The number of bits is chosen uniformly from [1, 64]; the bit content is
+     * uniformly random, covering the full bit-pattern space for each length.
+     */
+    public static Bit generate(Random r) {
+        int n = r.nextInt(1, 65);
+        int nb = (n + 7) / 8;
+        byte[] data = new byte[nb];
+        r.nextBytes(data);
+        // Zero out the padding bits in the last byte so that equals() is stable.
+        if (n % 8 != 0) {
+            data[nb - 1] &= (byte) (0xFF << (8 - (n % 8)));
         }
         return new Bit(n, data);
     }

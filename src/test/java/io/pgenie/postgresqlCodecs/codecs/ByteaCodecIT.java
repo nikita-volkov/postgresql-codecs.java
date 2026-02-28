@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class ByteaCodecIT extends CodecITBase {
 
@@ -47,6 +49,22 @@ public class ByteaCodecIT extends CodecITBase {
     @Test
     void byteaEmptyBinary() throws Exception {
         byte[] value = new byte[0];
+        byte[] pgBytes = pgBinaryBytes(Codec.BYTEA, "bytea", value);
+        assertArrayEquals(pgBytes, Codec.BYTEA.encode(value));
+        assertArrayEquals(value, Codec.BYTEA.decodeBinary(wrap(pgBytes), pgBytes.length));
+    }
+
+    @ParameterizedTest
+    @MethodSource("io.pgenie.postgresqlCodecs.codecs.Generators#byteas")
+    void byteaPropertyRoundTrip(byte[] value) throws Exception {
+        String text = roundTripText(Codec.BYTEA, "bytea", value);
+        assertNotNull(text);
+        assertArrayEquals(value, Codec.BYTEA.parse(text, 0).value);
+    }
+
+    @ParameterizedTest
+    @MethodSource("io.pgenie.postgresqlCodecs.codecs.Generators#byteas")
+    void byteaPropertyBinaryRoundTrip(byte[] value) throws Exception {
         byte[] pgBytes = pgBinaryBytes(Codec.BYTEA, "bytea", value);
         assertArrayEquals(pgBytes, Codec.BYTEA.encode(value));
         assertArrayEquals(value, Codec.BYTEA.decodeBinary(wrap(pgBytes), pgBytes.length));

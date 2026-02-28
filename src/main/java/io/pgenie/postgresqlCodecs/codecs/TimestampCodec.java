@@ -51,23 +51,54 @@ final class TimestampCodec implements Codec<LocalDateTime> {
         if (offset >= len) {
             throw new Codec.ParseException(input, offset, "Expected timestamp, reached end of input");
         }
-        // Minimum: "yyyy-MM-dd HH:mm:ss" = 19 chars
-        int i = offset + 19;
-        if (i > len) {
-            throw new Codec.ParseException(input, offset, "Expected timestamp (yyyy-MM-dd HH:mm:ss)");
+        int p = offset;
+        // Year: one or more digits (may be more than 4 for years after 9999 AD).
+        int yearStart = p;
+        while (p < len && Character.isDigit(input.charAt(p))) p++;
+        if (p == yearStart || p >= len || input.charAt(p) != '-') {
+            throw new Codec.ParseException(input, offset, "Expected timestamp YYYY-MM-DD HH:mm:ss");
         }
+        int year = Integer.parseInt(input.subSequence(yearStart, p).toString());
+        p++; // skip '-'
+        // Month (2 digits), '-', day (2 digits), ' ', HH, ':', mm, ':', ss
+        // Need at least 14 more characters: MM-DD HH:mm:ss
+        if (p + 14 > len) {
+            throw new Codec.ParseException(input, offset, "Expected timestamp YYYY-MM-DD HH:mm:ss");
+        }
+        int month = (input.charAt(p) - '0') * 10 + (input.charAt(p + 1) - '0');
+        p += 3; // skip MM-
+        int day = (input.charAt(p) - '0') * 10 + (input.charAt(p + 1) - '0');
+        p += 3; // skip DD[space]
+        int hour = (input.charAt(p) - '0') * 10 + (input.charAt(p + 1) - '0');
+        p += 3; // skip HH:
+        int minute = (input.charAt(p) - '0') * 10 + (input.charAt(p + 1) - '0');
+        p += 3; // skip mm:
+        int second = (input.charAt(p) - '0') * 10 + (input.charAt(p + 1) - '0');
+        p += 2;
         // Optional fractional seconds
-        if (i < len && input.charAt(i) == '.') {
-            i++;
-            while (i < len && input.charAt(i) >= '0' && input.charAt(i) <= '9') {
-                i++;
+        int nanos = 0;
+        if (p < len && input.charAt(p) == '.') {
+            p++;
+            int fracStart = p;
+            while (p < len && input.charAt(p) >= '0' && input.charAt(p) <= '9') p++;
+            // Parse up to 9 digits (nanoseconds precision); pad or truncate to 9 digits
+            int fracLen = p - fracStart;
+            String fracStr = input.subSequence(fracStart, p).toString();
+            if (fracLen <= 9) {
+                nanos = Integer.parseInt(fracStr) * (int) Math.pow(10, 9 - fracLen);
+            } else {
+                nanos = Integer.parseInt(fracStr.substring(0, 9));
             }
         }
-        String token = input.subSequence(offset, i).toString().replace(' ', 'T');
+        // Optional " BC" suffix
+        if (p + 3 <= len && input.charAt(p) == ' ' && input.charAt(p + 1) == 'B' && input.charAt(p + 2) == 'C') {
+            year = -(year - 1);
+            p += 3;
+        }
         try {
-            LocalDateTime value = LocalDateTime.parse(token);
-            return new Codec.ParsingResult<>(value, i);
-        } catch (java.time.format.DateTimeParseException e) {
+            LocalDateTime value = LocalDateTime.of(year, month, day, hour, minute, second, nanos);
+            return new Codec.ParsingResult<>(value, p);
+        } catch (Exception e) {
             throw new Codec.ParseException(input, offset, "Invalid timestamp: " + e.getMessage());
         }
     }

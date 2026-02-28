@@ -7,6 +7,8 @@ import java.time.ZoneOffset;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class TimetzCodecIT extends CodecITBase {
 
@@ -32,6 +34,18 @@ public class TimetzCodecIT extends CodecITBase {
         assertBinaryRoundTrip(Codec.TIMETZ, "timetz", LocalTime.of(12, 0, 0).atOffset(ZoneOffset.UTC));
         assertBinaryRoundTrip(Codec.TIMETZ, "timetz", LocalTime.of(9, 30, 0).atOffset(ZoneOffset.ofHours(5)));
         assertBinaryRoundTrip(Codec.TIMETZ, "timetz", LocalTime.of(18, 0, 0).atOffset(ZoneOffset.ofHours(-8)));
+    }
+
+    @ParameterizedTest
+    @MethodSource("io.pgenie.postgresqlCodecs.codecs.Generators#timetzes")
+    void timetzPropertyRoundTrip(OffsetTime value) throws Exception {
+        assertEquals(value, roundTrip(Codec.TIMETZ, value));
+    }
+
+    @ParameterizedTest
+    @MethodSource("io.pgenie.postgresqlCodecs.codecs.Generators#timetzes")
+    void timetzPropertyBinaryRoundTrip(OffsetTime value) throws Exception {
+        assertBinaryRoundTrip(Codec.TIMETZ, "timetz", value);
     }
 
 }
