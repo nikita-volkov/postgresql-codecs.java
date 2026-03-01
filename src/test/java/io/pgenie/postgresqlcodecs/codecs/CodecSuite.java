@@ -13,6 +13,7 @@ import io.r2dbc.spi.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 import net.jqwik.api.Arbitrary;
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
@@ -38,36 +39,42 @@ abstract class CodecSuite<A> {
   private final Codec<A> codec;
   private final Class<A> type;
 
+  private final Codec<List<A>> arrayCodec;
+
   /** JDBC connection (pgjdbc) used for text-protocol baseline tests. */
   private final java.sql.Connection pgjdbcConnection;
 
   /**
    * Persistent R2DBC connection whose codec sends parameters in <b>binary</b> format and expects
-   * results in <b>binary</b> format ({@code forceBinary=true}).
+   * results in <b>binary</b> format ({@code forceBinary=true}). Handles both scalar and array
+   * values.
    */
   private final Connection binaryInBinaryOutConn;
 
   /**
    * Persistent R2DBC connection whose codec sends parameters in <b>text</b> format and expects
-   * results in <b>text</b> format (no {@code forceBinary}).
+   * results in <b>text</b> format (no {@code forceBinary}). Handles both scalar and array values.
    */
   private final Connection textInTextOutConn;
 
   /**
    * Persistent R2DBC connection whose codec sends parameters in <b>text</b> format and expects
-   * results in <b>binary</b> format ({@code forceBinary=true}).
+   * results in <b>binary</b> format ({@code forceBinary=true}). Handles both scalar and array
+   * values.
    */
   private final Connection textInBinaryOutConn;
 
   /**
    * Persistent R2DBC connection whose codec sends parameters in <b>binary</b> format and expects
-   * results in <b>text</b> format (no {@code forceBinary}).
+   * results in <b>text</b> format (no {@code forceBinary}). Handles both scalar and array values.
    */
   private final Connection binaryInTextOutConn;
 
+  @SuppressWarnings("unchecked")
   protected CodecSuite(Codec<A> codec, Class<A> type) {
     this.codec = codec;
     this.type = type;
+    this.arrayCodec = codec.inDim();
 
     try {
       var props = new java.util.Properties();
@@ -82,10 +89,29 @@ abstract class CodecSuite<A> {
       throw new RuntimeException("Failed to open connection", e);
     }
 
-    binaryInBinaryOutConn = r2dbcConnect(true, new BinaryInBinaryOutR2dbcCodec<>(codec, type));
-    textInTextOutConn = r2dbcConnect(false, new TextInTextOutR2dbcCodec<>(codec, type));
-    textInBinaryOutConn = r2dbcConnect(true, new TextInBinaryOutR2dbcCodec<>(codec, type));
-    binaryInTextOutConn = r2dbcConnect(false, new BinaryInTextOutR2dbcCodec<>(codec, type));
+    Class<List<A>> listClass = (Class<List<A>>) (Class<?>) List.class;
+
+    // Each connection handles both the scalar and array codec, so no extra connections are needed.
+    binaryInBinaryOutConn =
+        r2dbcConnect(
+            true,
+            new BinaryInBinaryOutR2dbcCodec<>(codec, type),
+            new BinaryInBinaryOutR2dbcCodec<>(arrayCodec, listClass));
+    textInTextOutConn =
+        r2dbcConnect(
+            false,
+            new TextInTextOutR2dbcCodec<>(codec, type),
+            new TextInTextOutR2dbcCodec<>(arrayCodec, listClass));
+    textInBinaryOutConn =
+        r2dbcConnect(
+            true,
+            new TextInBinaryOutR2dbcCodec<>(codec, type),
+            new TextInBinaryOutR2dbcCodec<>(arrayCodec, listClass));
+    binaryInTextOutConn =
+        r2dbcConnect(
+            false,
+            new BinaryInTextOutR2dbcCodec<>(codec, type),
+            new BinaryInTextOutR2dbcCodec<>(arrayCodec, listClass));
   }
 
   @AfterAll
@@ -102,7 +128,7 @@ abstract class CodecSuite<A> {
   // Helpers
   // -----------------------------------------------------------------------
   private Connection r2dbcConnect(
-      boolean forceBinary, io.r2dbc.postgresql.codec.Codec<A> r2dbcCodec) {
+      boolean forceBinary, io.r2dbc.postgresql.codec.Codec<?>... r2dbcCodecs) {
     var builder =
         PostgresqlConnectionConfiguration.builder()
             .host(pg.getHost())
@@ -112,7 +138,9 @@ abstract class CodecSuite<A> {
             .database(pg.getDatabaseName())
             .codecRegistrar(
                 (c, allocator, registry) -> {
-                  registry.addFirst(r2dbcCodec);
+                  for (var r2dbcCodec : r2dbcCodecs) {
+                    registry.addFirst(r2dbcCodec);
+                  }
                   return Mono.empty();
                 });
     if (forceBinary) {
@@ -129,13 +157,31 @@ abstract class CodecSuite<A> {
         .block();
   }
 
+  @SuppressWarnings("unchecked")
+  private List<A> roundtripArrayViaR2dbc(Connection r2conn, List<A> value) {
+    return (List<A>)
+        Flux.from(
+                r2conn
+                    .createStatement("SELECT $1::" + arrayCodec.typeSig())
+                    .bind(0, value)
+                    .execute())
+            .flatMap(result -> result.map((row, meta) -> row.get(0, List.class)))
+            .single()
+            .block();
+  }
+
   @Provide
   Arbitrary<A> values() {
     return net.jqwik.api.Arbitraries.randomValue(codec::random);
   }
 
+  @Provide
+  Arbitrary<List<A>> arrayValues() {
+    return net.jqwik.api.Arbitraries.randomValue(arrayCodec::random);
+  }
+
   // -----------------------------------------------------------------------
-  // Tests
+  // Scalar tests
   // -----------------------------------------------------------------------
   @Test
   void oidMatchesName() throws Exception {
@@ -149,6 +195,24 @@ abstract class CodecSuite<A> {
       try (ResultSet rs = ps.executeQuery()) {
         if (rs.next()) {
           assertEquals(rs.getInt(1), codec.oid(), "OID mismatch for " + codec.name());
+        }
+      }
+    }
+  }
+
+  @Test
+  void arrayOidMatchesName() throws Exception {
+    if (arrayCodec.oid() == 0) {
+      return;
+    }
+    // Array types in pg_type are named "_<element_name>".
+    try (var ps =
+        pgjdbcConnection.prepareStatement("SELECT oid::int FROM pg_type WHERE typname = ?")) {
+      ps.setString(1, "_" + codec.name());
+      try (ResultSet rs = ps.executeQuery()) {
+        if (rs.next()) {
+          assertEquals(
+              rs.getInt(1), arrayCodec.oid(), "Array OID mismatch for " + arrayCodec.typeSig());
         }
       }
     }
@@ -207,6 +271,69 @@ abstract class CodecSuite<A> {
       }
 
       assertEquals(value, decoded, "decode mismatch for " + codec.typeSig() + " value=" + value);
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Array tests
+  // -----------------------------------------------------------------------
+
+  @Property(tries = 100)
+  void arrayRoundtripsInBinaryToBinaryViaR2dbc(@ForAll("arrayValues") List<A> value)
+      throws Exception {
+    List<A> decoded = roundtripArrayViaR2dbc(binaryInBinaryOutConn, value);
+    assertEquals(value, decoded, "decode mismatch for " + arrayCodec.typeSig() + " value=" + value);
+  }
+
+  @Property(tries = 100)
+  void arrayRoundtripsInTextToTextViaR2dbc(@ForAll("arrayValues") List<A> value) throws Exception {
+    List<A> decoded = roundtripArrayViaR2dbc(textInTextOutConn, value);
+    assertEquals(value, decoded, "decode mismatch for " + arrayCodec.typeSig() + " value=" + value);
+  }
+
+  @Property(tries = 100)
+  void arrayRoundtripsInTextToBinaryViaR2dbc(@ForAll("arrayValues") List<A> value)
+      throws Exception {
+    List<A> decoded = roundtripArrayViaR2dbc(textInBinaryOutConn, value);
+    assertEquals(value, decoded, "decode mismatch for " + arrayCodec.typeSig() + " value=" + value);
+  }
+
+  @Property(tries = 100)
+  void arrayRoundtripsInBinaryToTextViaR2dbc(@ForAll("arrayValues") List<A> value)
+      throws Exception {
+    List<A> decoded = roundtripArrayViaR2dbc(binaryInTextOutConn, value);
+    assertEquals(value, decoded, "decode mismatch for " + arrayCodec.typeSig() + " value=" + value);
+  }
+
+  @Property(tries = 100)
+  void arrayRoundtripsInTextToTextViaPgjdbc(@ForAll("arrayValues") List<A> value) throws Exception {
+    try (var ps = pgjdbcConnection.prepareStatement("SELECT ?::" + arrayCodec.typeSig())) {
+      if (value != null) {
+        PGobject obj = new PGobject();
+        obj.setType(arrayCodec.typeSig());
+        {
+          StringBuilder sb = new StringBuilder();
+          arrayCodec.write(sb, value);
+          obj.setValue(sb.toString());
+        }
+        ps.setObject(1, obj);
+      } else {
+        ps.setNull(1, java.sql.Types.OTHER);
+      }
+
+      List<A> decoded;
+      try (ResultSet rs = ps.executeQuery()) {
+        assertTrue(rs.next(), "Expected a result row");
+        String text = rs.getString(1);
+        if (text == null) {
+          decoded = null;
+        } else {
+          decoded = arrayCodec.parse(text, 0).value;
+        }
+      }
+
+      assertEquals(
+          value, decoded, "decode mismatch for " + arrayCodec.typeSig() + " value=" + value);
     }
   }
 }
