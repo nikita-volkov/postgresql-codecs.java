@@ -141,7 +141,7 @@ public final class ArrayCodec<A> implements Codec<List<A>> {
    */
   @Override
   public void encodeInBinary(List<A> value, ByteArrayOutputStream out) {
-    writeInt32(out, 1); // ndim
+    writeInt32(out, dimensions()); // ndim
     writeInt32(out, 0); // flags
     writeInt32(out, elementCodec.scalarOid()); // element OID
     writeInt32(out, value.size()); // dimension size
@@ -159,21 +159,32 @@ public final class ArrayCodec<A> implements Codec<List<A>> {
     }
   }
 
-  /**
-   * Decodes a PostgreSQL binary array. Expects ndim == 1 (or 0 for empty); multi-dimensional arrays
-   * are rejected.
-   */
+  /** Decodes a PostgreSQL binary array. */
   @Override
   public List<A> decodeInBinary(ByteBuffer buf, int length) throws ParseException {
     int ndim = buf.getInt();
     buf.getInt(); // flags (ignored)
-    buf.getInt(); // element OID (ignored; we trust the connection)
+    int elementOid = buf.getInt();
+
+    int expectedElementOid = elementCodec.scalarOid();
+
+    if (expectedElementOid != 0 && elementOid != expectedElementOid) {
+      throw new ParseException(
+          "Unexpected element OID in array binary decode: expected "
+              + expectedElementOid
+              + ", got "
+              + elementOid);
+    }
+
     if (ndim == 0) {
       return new ArrayList<>();
     }
-    if (ndim != 1) {
-      throw new ParseException("Expected 1-dimensional array in binary decode, got ndim=" + ndim);
+
+    if (ndim != dimensions()) {
+      throw new ParseException(
+          "Expected " + dimensions() + "-dimensional array in binary decode, got " + ndim);
     }
+
     int dimSize = buf.getInt();
     buf.getInt(); // lower bound (ignored)
     List<A> result = new ArrayList<>(dimSize);
@@ -185,6 +196,7 @@ public final class ArrayCodec<A> implements Codec<List<A>> {
         result.add(elementCodec.decodeInBinary(buf, elemLen));
       }
     }
+
     return result;
   }
 
@@ -193,6 +205,10 @@ public final class ArrayCodec<A> implements Codec<List<A>> {
   // -----------------------------------------------------------------------
   @Override
   public List<A> random(Random r) {
+    // TODO: Update to support multi-dimensional arrays. Possibly by parameterizing with the size of
+    // the dimension, assuming that it gets determined by the caller. Thus we can achieve the stable
+    // size of each row, which is required by the DB.
+
     int size = r.nextInt(6); // 0–5 elements
     List<A> list = new ArrayList<>(size);
     for (int i = 0; i < size; i++) {
