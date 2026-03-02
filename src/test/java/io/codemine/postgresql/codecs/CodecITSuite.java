@@ -27,7 +27,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-abstract class CodecSuite<A> {
+abstract class CodecITSuite<A> {
 
   static final PostgreSQLContainer<?> pg;
 
@@ -71,7 +71,7 @@ abstract class CodecSuite<A> {
   private final Connection binaryInTextOutConn;
 
   @SuppressWarnings("unchecked")
-  protected CodecSuite(Codec<A> codec, Class<A> type) {
+  protected CodecITSuite(Codec<A> codec, Class<A> type) {
     this.codec = codec;
     this.type = type;
     this.arrayCodec = codec.inDim();
