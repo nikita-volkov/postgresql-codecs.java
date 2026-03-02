@@ -63,15 +63,15 @@ public final class EnumCodec<E> implements Codec<E> {
   }
 
   @Override
-  public void encode(E value, ByteArrayOutputStream out) {
+  public void encodeInBinary(E value, ByteArrayOutputStream out) {
     // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'encode'");
+    throw new UnsupportedOperationException("Unimplemented method 'encodeInBinary'");
   }
 
   @Override
-  public E decodeBinary(ByteBuffer buf, int length) throws ParseException {
+  public E decodeInBinary(ByteBuffer buf, int length) throws ParseException {
     // TODO Auto-generated method stub
-    throw new UnsupportedOperationException("Unimplemented method 'decodeBinary'");
+    throw new UnsupportedOperationException("Unimplemented method 'decodeInBinary'");
   }
 
   @Override

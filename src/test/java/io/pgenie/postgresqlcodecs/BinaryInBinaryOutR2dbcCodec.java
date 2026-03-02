@@ -47,7 +47,7 @@ public class BinaryInBinaryOutR2dbcCodec<A> implements io.r2dbc.postgresql.codec
   @Override
   @SuppressWarnings("unchecked")
   public EncodedParameter encode(Object value, int dataType) {
-    byte[] bytes = codec.encode((A) value);
+    byte[] bytes = codec.encodeInBinary((A) value);
     return new EncodedParameter(
         Format.FORMAT_BINARY, dataType, Mono.just(Unpooled.wrappedBuffer(bytes)));
   }
@@ -79,7 +79,7 @@ public class BinaryInBinaryOutR2dbcCodec<A> implements io.r2dbc.postgresql.codec
     byte[] bytes = new byte[buffer.readableBytes()];
     buffer.readBytes(bytes);
     try {
-      return codec.decodeBinary(ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN), bytes.length);
+      return codec.decodeInBinary(ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN), bytes.length);
     } catch (ParseException e) {
       throw new RuntimeException(e);
     }

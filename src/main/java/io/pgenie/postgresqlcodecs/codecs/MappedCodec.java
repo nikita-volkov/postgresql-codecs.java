@@ -42,13 +42,13 @@ final class MappedCodec<A, B> implements Codec<B> {
   }
 
   @Override
-  public void encode(B value, ByteArrayOutputStream out) {
-    codec.encode(fromMapped.apply(value), out);
+  public void encodeInBinary(B value, ByteArrayOutputStream out) {
+    codec.encodeInBinary(fromMapped.apply(value), out);
   }
 
   @Override
-  public B decodeBinary(ByteBuffer buf, int length) throws Codec.ParseException {
-    return toMapped.apply(codec.decodeBinary(buf, length));
+  public B decodeInBinary(ByteBuffer buf, int length) throws Codec.ParseException {
+    return toMapped.apply(codec.decodeInBinary(buf, length));
   }
 
   @Override

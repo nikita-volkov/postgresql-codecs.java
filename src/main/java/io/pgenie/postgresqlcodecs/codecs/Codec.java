@@ -15,9 +15,9 @@ import java.util.function.Function;
  *   <li><b>Textual</b> — the PostgreSQL text representation, used via {@link #write} and {@link
  *       #parse}. These methods are also used when encoding composite and array fields inside a
  *       composite/array literal.
- *   <li><b>Binary</b> — the PostgreSQL binary wire format, used via {@link #encode} and {@link
- *       #decodeBinary}. Binary encoding is compact, unambiguous and required when assembling
- *       composite or array values in binary protocol mode.
+ *   <li><b>Binary</b> — the PostgreSQL binary wire format, used via {@link #encodeInBinary} and
+ *       {@link #decodeInBinary}. Binary encoding is compact, unambiguous and required when
+ *       assembling composite or array values in binary protocol mode.
  * </ul>
  *
  * @param <A> the type of the value
@@ -136,15 +136,15 @@ public interface Codec<A> {
    *
    * @throws UnsupportedOperationException if binary encoding is not implemented for this type
    */
-  void encode(A value, ByteArrayOutputStream out);
+  void encodeInBinary(A value, ByteArrayOutputStream out);
 
   /**
    * Convenience overload that encodes the value into a freshly-allocated byte array and returns it.
-   * Delegates to {@link #encode(Object, ByteArrayOutputStream)}.
+   * Delegates to {@link #encodeInBinary(Object, ByteArrayOutputStream)}.
    */
-  default byte[] encode(A value) {
+  default byte[] encodeInBinary(A value) {
     var out = new ByteArrayOutputStream();
-    encode(value, out);
+    encodeInBinary(value, out);
     return out.toByteArray();
   }
 
@@ -162,7 +162,7 @@ public interface Codec<A> {
    * @throws ParseException if the binary data is malformed
    * @throws UnsupportedOperationException if binary decoding is not implemented for this type
    */
-  A decodeBinary(ByteBuffer buf, int length) throws ParseException;
+  A decodeInBinary(ByteBuffer buf, int length) throws ParseException;
 
   /**
    * Generates a random value of type A, for testing purposes. The provided {@link Random} instance

@@ -258,7 +258,7 @@ public final class CompositeCodec<Z> implements Codec<Z> {
    */
   @Override
   @SuppressWarnings("unchecked")
-  public void encode(Z value, ByteArrayOutputStream out) {
+  public void encodeInBinary(Z value, ByteArrayOutputStream out) {
     writeInt32(out, fields.length);
     for (var f : fields) {
       var field = (Field<Z, Object>) f;
@@ -268,7 +268,7 @@ public final class CompositeCodec<Z> implements Codec<Z> {
         writeInt32(out, -1);
       } else {
         var fieldOut = new ByteArrayOutputStream();
-        field.codec.encode(fieldValue, fieldOut);
+        field.codec.encodeInBinary(fieldValue, fieldOut);
         writeInt32(out, fieldOut.size());
         out.write(fieldOut.toByteArray(), 0, fieldOut.size());
       }
@@ -285,7 +285,7 @@ public final class CompositeCodec<Z> implements Codec<Z> {
   /** Decodes a composite value from the PostgreSQL binary composite format. */
   @Override
   @SuppressWarnings("unchecked")
-  public Z decodeBinary(ByteBuffer buf, int length) throws Codec.ParseException {
+  public Z decodeInBinary(ByteBuffer buf, int length) throws Codec.ParseException {
     if (length < 4) {
       throw new Codec.ParseException("Binary composite too short: " + length);
     }
@@ -305,7 +305,7 @@ public final class CompositeCodec<Z> implements Codec<Z> {
       if (fieldLen == -1) {
         fn = ((Function<Object, Object>) fn).apply(null);
       } else {
-        Object fieldValue = ((Codec<Object>) fields[i].codec).decodeBinary(buf, fieldLen);
+        Object fieldValue = ((Codec<Object>) fields[i].codec).decodeInBinary(buf, fieldLen);
         fn = ((Function<Object, Object>) fn).apply(fieldValue);
       }
     }

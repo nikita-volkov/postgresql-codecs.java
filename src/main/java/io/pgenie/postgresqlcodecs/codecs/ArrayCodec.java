@@ -140,7 +140,7 @@ public final class ArrayCodec<A> implements Codec<List<A>> {
    * </pre>
    */
   @Override
-  public void encode(List<A> value, ByteArrayOutputStream out) {
+  public void encodeInBinary(List<A> value, ByteArrayOutputStream out) {
     writeInt32(out, 1); // ndim
     writeInt32(out, 0); // flags
     writeInt32(out, elementCodec.scalarOid()); // element OID
@@ -151,7 +151,7 @@ public final class ArrayCodec<A> implements Codec<List<A>> {
         writeInt32(out, -1);
       } else {
         ByteArrayOutputStream elemOut = new ByteArrayOutputStream();
-        elementCodec.encode(elem, elemOut);
+        elementCodec.encodeInBinary(elem, elemOut);
         byte[] bytes = elemOut.toByteArray();
         writeInt32(out, bytes.length);
         out.writeBytes(bytes);
@@ -164,7 +164,7 @@ public final class ArrayCodec<A> implements Codec<List<A>> {
    * are rejected.
    */
   @Override
-  public List<A> decodeBinary(ByteBuffer buf, int length) throws ParseException {
+  public List<A> decodeInBinary(ByteBuffer buf, int length) throws ParseException {
     int ndim = buf.getInt();
     buf.getInt(); // flags (ignored)
     buf.getInt(); // element OID (ignored; we trust the connection)
@@ -182,7 +182,7 @@ public final class ArrayCodec<A> implements Codec<List<A>> {
       if (elemLen == -1) {
         result.add(null);
       } else {
-        result.add(elementCodec.decodeBinary(buf, elemLen));
+        result.add(elementCodec.decodeInBinary(buf, elemLen));
       }
     }
     return result;

@@ -84,7 +84,7 @@ public class TextInBinaryOutR2dbcCodec<A> implements io.r2dbc.postgresql.codec.C
     byte[] bytes = new byte[buffer.readableBytes()];
     buffer.readBytes(bytes);
     try {
-      return codec.decodeBinary(ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN), bytes.length);
+      return codec.decodeInBinary(ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN), bytes.length);
     } catch (ParseException e) {
       throw new RuntimeException(e);
     }

@@ -70,7 +70,7 @@ public sealed interface Inet permits Inet.V4, Inet.V6 {
         }
 
         @Override
-        public void encode(Inet value, ByteArrayOutputStream out) {
+        public void encodeInBinary(Inet value, ByteArrayOutputStream out) {
           switch (value) {
             case Inet.V4(int addr, byte netmask) -> {
               out.write(2); // IPv4 address family
@@ -109,7 +109,7 @@ public sealed interface Inet permits Inet.V4, Inet.V6 {
         }
 
         @Override
-        public Inet decodeBinary(ByteBuffer buf, int length) throws Codec.ParseException {
+        public Inet decodeInBinary(ByteBuffer buf, int length) throws Codec.ParseException {
           if (length < 4) {
             throw new Codec.ParseException("Binary inet too short: " + length);
           }

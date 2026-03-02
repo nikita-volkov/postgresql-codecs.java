@@ -67,7 +67,7 @@ public record Macaddr(byte b1, byte b2, byte b3, byte b4, byte b5, byte b6) {
         }
 
         @Override
-        public void encode(Macaddr value, ByteArrayOutputStream out) {
+        public void encodeInBinary(Macaddr value, ByteArrayOutputStream out) {
           out.write(value.b1());
           out.write(value.b2());
           out.write(value.b3());
@@ -77,7 +77,7 @@ public record Macaddr(byte b1, byte b2, byte b3, byte b4, byte b5, byte b6) {
         }
 
         @Override
-        public Macaddr decodeBinary(ByteBuffer buf, int length) throws Codec.ParseException {
+        public Macaddr decodeInBinary(ByteBuffer buf, int length) throws Codec.ParseException {
           if (length != 6) {
             throw new Codec.ParseException("Binary macaddr must be 6 bytes, got " + length);
           }
