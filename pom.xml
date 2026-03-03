@@ -10,7 +10,7 @@
     <packaging>jar</packaging>
 
     <name>PostgreSQL mapping library</name>
-    <description>A Java library for encoding and decoding PostgreSQL data types.</description>
+    <description>A driver-agnostic Java library for encoding and decoding PostgreSQL data types.</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
