@@ -50,9 +50,49 @@ final class ArrayCodec<A> implements Codec<List<A>> {
       if (i > 0) {
         sb.append(",");
       }
-      elementCodec.write(sb, value.get(i));
+      StringBuilder elemSb = new StringBuilder();
+      elementCodec.write(elemSb, value.get(i));
+      writeArrayElement(sb, elemSb);
     }
     sb.append("}");
+  }
+
+  /**
+   * Writes a single array element in PostgreSQL array-literal notation, quoting and
+   * backslash-escaping the content when it contains reserved characters ({@code , { } " \} or
+   * whitespace) or when the element is the empty string.
+   *
+   * <p>The backslash-escape convention ({@code \"} and {@code \\}) is used because it is the form
+   * that the matching {@link #parse} implementation expects.
+   */
+  private static void writeArrayElement(StringBuilder out, StringBuilder elem) {
+    int len = elem.length();
+    if (len == 0) {
+      // Empty string must be quoted so it is not mistaken for NULL.
+      out.append("\"\"");
+      return;
+    }
+    boolean needsQuoting = false;
+    for (int i = 0; i < len; i++) {
+      char c = elem.charAt(i);
+      if (c == ',' || c == '{' || c == '}' || c == '"' || c == '\\' || Character.isWhitespace(c)) {
+        needsQuoting = true;
+        break;
+      }
+    }
+    if (!needsQuoting) {
+      out.append(elem);
+      return;
+    }
+    out.append('"');
+    for (int i = 0; i < len; i++) {
+      char c = elem.charAt(i);
+      if (c == '"' || c == '\\') {
+        out.append('\\');
+      }
+      out.append(c);
+    }
+    out.append('"');
   }
 
   /**
