@@ -34,23 +34,18 @@ final class TimestamptzCodec implements Codec<Instant> {
     long epochSecond = Math.floorDiv(unixMicros, 1_000_000L);
     long microOfSecond = Math.floorMod(unixMicros, 1_000_000L);
     LocalDateTime dt = LocalDateTime.ofEpochSecond(epochSecond, 0, ZoneOffset.UTC);
-    sb.append(
-        String.format(
-            "%04d-%02d-%02d %02d:%02d:%02d",
-            dt.getYear(),
-            dt.getMonthValue(),
-            dt.getDayOfMonth(),
-            dt.getHour(),
-            dt.getMinute(),
-            dt.getSecond()));
-    if (microOfSecond > 0) {
-      String f = String.format("%06d", microOfSecond);
-      int end = f.length();
-      while (end > 0 && f.charAt(end - 1) == '0') {
-        end--;
-      }
-      sb.append('.').append(f, 0, end);
-    }
+    pad4(sb, dt.getYear());
+    sb.append('-');
+    pad2(sb, dt.getMonthValue());
+    sb.append('-');
+    pad2(sb, dt.getDayOfMonth());
+    sb.append(' ');
+    pad2(sb, dt.getHour());
+    sb.append(':');
+    pad2(sb, dt.getMinute());
+    sb.append(':');
+    pad2(sb, dt.getSecond());
+    appendFraction(sb, microOfSecond);
     sb.append("+00");
   }
 
@@ -172,5 +167,36 @@ final class TimestamptzCodec implements Codec<Instant> {
       offset = -offset;
     }
     return offset;
+  }
+
+  /** Appends a zero-padded 4-digit year. */
+  private static void pad4(StringBuilder sb, int v) {
+    if (v < 10) sb.append("000");
+    else if (v < 100) sb.append("00");
+    else if (v < 1000) sb.append('0');
+    sb.append(v);
+  }
+
+  /** Appends a zero-padded 2-digit integer. */
+  private static void pad2(StringBuilder sb, int v) {
+    if (v < 10) sb.append('0');
+    sb.append(v);
+  }
+
+  /** Appends fractional seconds (1-6 digits, trailing zeros stripped) if non-zero. */
+  private static void appendFraction(StringBuilder sb, long micros) {
+    if (micros > 0) {
+      sb.append('.');
+      int val = (int) micros;
+      sb.append((char) ('0' + val / 100000));
+      sb.append((char) ('0' + val / 10000 % 10));
+      sb.append((char) ('0' + val / 1000 % 10));
+      sb.append((char) ('0' + val / 100 % 10));
+      sb.append((char) ('0' + val / 10 % 10));
+      sb.append((char) ('0' + val % 10));
+      int len = sb.length();
+      while (sb.charAt(len - 1) == '0') len--;
+      sb.setLength(len);
+    }
   }
 }

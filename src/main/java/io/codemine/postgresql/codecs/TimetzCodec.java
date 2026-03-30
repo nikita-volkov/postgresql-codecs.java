@@ -34,15 +34,12 @@ final class TimetzCodec implements Codec<Timetz> {
     total %= 60_000_000L;
     long seconds = total / 1_000_000L;
     long frac = total % 1_000_000L;
-    sb.append(String.format("%02d:%02d:%02d", hours, minutes, seconds));
-    if (frac > 0) {
-      String f = String.format("%06d", frac);
-      int end = f.length();
-      while (end > 0 && f.charAt(end - 1) == '0') {
-        end--;
-      }
-      sb.append('.').append(f, 0, end);
-    }
+    pad2(sb, hours);
+    sb.append(':');
+    pad2(sb, minutes);
+    sb.append(':');
+    pad2(sb, seconds);
+    appendFraction(sb, frac);
 
     // Write timezone: internal zone has inverted sign (negative = UTC+)
     int displayOffset = -value.zone();
@@ -52,11 +49,13 @@ final class TimetzCodec implements Codec<Timetz> {
     int tzMinutes = (abs % 3600) / 60;
     int tzSeconds = abs % 60;
     sb.append(sign);
-    sb.append(String.format("%02d", tzHours));
+    pad2(sb, tzHours);
     if (tzMinutes != 0 || tzSeconds != 0) {
-      sb.append(':').append(String.format("%02d", tzMinutes));
+      sb.append(':');
+      pad2(sb, tzMinutes);
       if (tzSeconds != 0) {
-        sb.append(':').append(String.format("%02d", tzSeconds));
+        sb.append(':');
+        pad2(sb, tzSeconds);
       }
     }
   }
@@ -164,5 +163,28 @@ final class TimetzCodec implements Codec<Timetz> {
       displayOffset = -displayOffset;
     }
     return -displayOffset; // invert for internal storage
+  }
+
+  /** Appends a zero-padded 2-digit integer. */
+  private static void pad2(StringBuilder sb, long v) {
+    if (v < 10) sb.append('0');
+    sb.append(v);
+  }
+
+  /** Appends fractional seconds (1-6 digits, trailing zeros stripped) if non-zero. */
+  private static void appendFraction(StringBuilder sb, long micros) {
+    if (micros > 0) {
+      sb.append('.');
+      int val = (int) micros;
+      sb.append((char) ('0' + val / 100000));
+      sb.append((char) ('0' + val / 10000 % 10));
+      sb.append((char) ('0' + val / 1000 % 10));
+      sb.append((char) ('0' + val / 100 % 10));
+      sb.append((char) ('0' + val / 10 % 10));
+      sb.append((char) ('0' + val % 10));
+      int len = sb.length();
+      while (sb.charAt(len - 1) == '0') len--;
+      sb.setLength(len);
+    }
   }
 }
