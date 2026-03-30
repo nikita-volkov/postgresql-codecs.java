@@ -1,0 +1,52 @@
+name: CD
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Semver version to publish (e.g., 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+          server-id: github
+          server-username: GITHUB_ACTOR
+          server-password: GITHUB_TOKEN
+
+      - name: Set version
+        run: mvn versions:set -DnewVersion=${{ inputs.version }} -DgenerateBackupPoms=false
+
+      - name: Publish to GitHub Packages
+        run: mvn --batch-mode deploy -DskipTests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit the version update
+        id: commit
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: Set package version to ${{ inputs.version }}
+          file_pattern: pom.xml
+
+      - name: Create release tag
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ github.token }}
+          custom_tag: ${{ inputs.version }}
+          tag_prefix: v
+          commit_sha: ${{ steps.commit.outputs.commit_hash }}
