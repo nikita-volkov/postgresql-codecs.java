@@ -26,6 +26,8 @@ public interface Codec<A> {
 
   Codec<Integer> INT4 = new Int4Codec();
   Codec<String> TEXT = new TextCodec();
+  Codec<Inet> INET = new InetCodec();
+  Codec<Macaddr> MACADDR = new MacaddrCodec();
 
   // -----------------------------------------------------------------------
   // Type metadata
