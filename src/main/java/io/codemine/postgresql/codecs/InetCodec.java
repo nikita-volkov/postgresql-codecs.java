@@ -14,8 +14,6 @@ final class InetCodec implements Codec<InetCodec.Inet> {
    * is represented by the number of network address bits present in the host address (the
    * "netmask"). If the netmask is 32 and the address is IPv4 (or 128 for IPv6), the value
    * represents just a single host.
-   *
-   * <p>Port of the Haskell {@code PostgresqlTypes.Inet} sum type.
    */
   public sealed interface Inet permits Inet.V4, Inet.V6 {
 

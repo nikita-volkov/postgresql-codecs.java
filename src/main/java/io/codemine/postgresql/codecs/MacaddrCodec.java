@@ -12,8 +12,6 @@ final class MacaddrCodec implements Codec<MacaddrCodec.Macaddr> {
    *
    * <p>Represents a 6-byte MAC address stored as six individual bytes. The canonical text format is
    * {@code xx:xx:xx:xx:xx:xx} in lower-case hexadecimal.
-   *
-   * <p>Port of the Haskell {@code PostgresqlTypes.Macaddr} type.
    */
   public record Macaddr(byte b1, byte b2, byte b3, byte b4, byte b5, byte b6) {
 
