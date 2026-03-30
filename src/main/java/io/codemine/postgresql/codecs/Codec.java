@@ -66,9 +66,9 @@ public interface Codec<A> {
   }
 
   /**
-   * Returns a new 1-D array codec whose element type is this codec. The returned codec uses
-   * PostgreSQL's array literal syntax ({@code {elem1,elem2,...}}) for text format and the standard
-   * binary array header for binary format.
+   * Returns an array codec whose element type is this codec. The returned codec uses PostgreSQL's
+   * array literal syntax ({@code {elem1,elem2,...}}) for text format and the standard binary array
+   * header for binary format.
    */
   default Codec<List<A>> inDim() {
     return new ArrayCodec<>(this);
