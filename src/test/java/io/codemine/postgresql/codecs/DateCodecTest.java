@@ -1,6 +1,8 @@
 package io.codemine.postgresql.codecs;
 
-public class DateCodecTest extends CodecTestBase<Integer> {
+import java.time.LocalDate;
+
+public class DateCodecTest extends CodecTestBase<LocalDate> {
   public DateCodecTest() {
     super(Codec.DATE);
   }

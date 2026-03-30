@@ -33,7 +33,8 @@ abstract class CodecITBase<A> {
   static final PostgreSQLContainer<?> container;
 
   static {
-    container = new PostgreSQLContainer<>("postgres:18");
+    container =
+        new PostgreSQLContainer<>("postgres:18").withCommand("postgres -c max_connections=300");
     container.start();
   }
 

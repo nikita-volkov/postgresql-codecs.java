@@ -43,11 +43,11 @@ public interface Codec<A> {
   Codec<Byte> CHAR = new CharCodec();
   Codec<Integer> OID = new OidCodec();
   Codec<Long> MONEY = new MoneyCodec();
-  Codec<Integer> DATE = new DateCodec();
-  Codec<Long> TIME = new TimeCodec();
+  Codec<java.time.LocalDate> DATE = new DateCodec();
+  Codec<java.time.LocalTime> TIME = new TimeCodec();
   Codec<Timetz> TIMETZ = new TimetzCodec();
-  Codec<Long> TIMESTAMP = new TimestampCodec();
-  Codec<Long> TIMESTAMPTZ = new TimestamptzCodec();
+  Codec<java.time.LocalDateTime> TIMESTAMP = new TimestampCodec();
+  Codec<java.time.Instant> TIMESTAMPTZ = new TimestamptzCodec();
   Codec<Interval> INTERVAL = new IntervalCodec();
   Codec<Point> POINT = new PointCodec();
   Codec<Line> LINE = new LineCodec();

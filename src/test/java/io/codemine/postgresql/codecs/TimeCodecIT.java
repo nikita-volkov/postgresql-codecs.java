@@ -1,7 +1,9 @@
 package io.codemine.postgresql.codecs;
 
-public class TimeCodecIT extends CodecITBase<Long> {
+import java.time.LocalTime;
+
+public class TimeCodecIT extends CodecITBase<LocalTime> {
   public TimeCodecIT() {
-    super(Codec.TIME, Long.class);
+    super(Codec.TIME, LocalTime.class);
   }
 }

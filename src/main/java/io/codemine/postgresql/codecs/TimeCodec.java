@@ -2,12 +2,11 @@ package io.codemine.postgresql.codecs;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
+import java.time.LocalTime;
 import java.util.Random;
 
-/** Codec for PostgreSQL {@code time} values (microseconds from midnight). */
-final class TimeCodec implements Codec<Long> {
-
-  private static final long MAX_TIME = 86_400_000_000L;
+/** Codec for PostgreSQL {@code time} values, represented as {@link LocalTime}. */
+final class TimeCodec implements Codec<LocalTime> {
 
   @Override
   public String name() {
@@ -25,43 +24,46 @@ final class TimeCodec implements Codec<Long> {
   }
 
   @Override
-  public void write(StringBuilder sb, Long value) {
-    writeTime(sb, value);
+  public void write(StringBuilder sb, LocalTime value) {
+    long micros = value.toNanoOfDay() / 1_000L;
+    writeTime(sb, micros);
   }
 
   @Override
-  public Codec.ParsingResult<Long> parse(CharSequence input, int offset)
+  public Codec.ParsingResult<LocalTime> parse(CharSequence input, int offset)
       throws Codec.DecodingException {
     String s = input.subSequence(offset, input.length()).toString().trim();
     try {
       long micros = parseTime(s, 0);
-      return new Codec.ParsingResult<>(micros, input.length());
+      return new Codec.ParsingResult<>(LocalTime.ofNanoOfDay(micros * 1_000L), input.length());
     } catch (Exception e) {
       throw new Codec.DecodingException(input, offset, "Invalid time: " + s);
     }
   }
 
   @Override
-  public void encodeInBinary(Long value, ByteArrayOutputStream out) {
-    long v = value;
-    out.write((int) (v >>> 56) & 0xFF);
-    out.write((int) (v >>> 48) & 0xFF);
-    out.write((int) (v >>> 40) & 0xFF);
-    out.write((int) (v >>> 32) & 0xFF);
-    out.write((int) (v >>> 24) & 0xFF);
-    out.write((int) (v >>> 16) & 0xFF);
-    out.write((int) (v >>> 8) & 0xFF);
-    out.write((int) (v & 0xFF));
+  public void encodeInBinary(LocalTime value, ByteArrayOutputStream out) {
+    long micros = value.toNanoOfDay() / 1_000L;
+    out.write((int) (micros >>> 56) & 0xFF);
+    out.write((int) (micros >>> 48) & 0xFF);
+    out.write((int) (micros >>> 40) & 0xFF);
+    out.write((int) (micros >>> 32) & 0xFF);
+    out.write((int) (micros >>> 24) & 0xFF);
+    out.write((int) (micros >>> 16) & 0xFF);
+    out.write((int) (micros >>> 8) & 0xFF);
+    out.write((int) (micros & 0xFF));
   }
 
   @Override
-  public Long decodeInBinary(ByteBuffer buf, int length) {
-    return buf.getLong();
+  public LocalTime decodeInBinary(ByteBuffer buf, int length) {
+    long micros = buf.getLong();
+    return LocalTime.ofNanoOfDay(micros * 1_000L);
   }
 
   @Override
-  public Long random(Random r, int size) {
-    return r.nextLong(0, MAX_TIME);
+  public LocalTime random(Random r, int size) {
+    long micros = r.nextLong(0, 86_400_000_000L);
+    return LocalTime.ofNanoOfDay(micros * 1_000L);
   }
 
   /** Writes a time-of-day in microseconds to the StringBuilder as hh:mm:ss[.ffffff]. */

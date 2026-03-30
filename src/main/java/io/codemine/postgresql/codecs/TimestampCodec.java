@@ -6,8 +6,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Random;
 
-/** Codec for PostgreSQL {@code timestamp} values (microseconds from 2000-01-01 00:00:00). */
-final class TimestampCodec implements Codec<Long> {
+/** Codec for PostgreSQL {@code timestamp} values, represented as {@link LocalDateTime}. */
+final class TimestampCodec implements Codec<LocalDateTime> {
 
   // Unix epoch seconds at 2000-01-01T00:00:00 UTC
   static final long PG_EPOCH_UNIX_SECONDS = 946_684_800L;
@@ -29,25 +29,26 @@ final class TimestampCodec implements Codec<Long> {
   }
 
   @Override
-  public void write(StringBuilder sb, Long value) {
-    writeTimestamp(sb, value);
+  public void write(StringBuilder sb, LocalDateTime value) {
+    long pgMicros = toPgMicros(value);
+    writeTimestamp(sb, pgMicros);
   }
 
   @Override
-  public Codec.ParsingResult<Long> parse(CharSequence input, int offset)
+  public Codec.ParsingResult<LocalDateTime> parse(CharSequence input, int offset)
       throws Codec.DecodingException {
     String s = input.subSequence(offset, input.length()).toString().trim();
     try {
       long pgMicros = parseTimestamp(s);
-      return new Codec.ParsingResult<>(pgMicros, input.length());
+      return new Codec.ParsingResult<>(fromPgMicros(pgMicros), input.length());
     } catch (Exception e) {
       throw new Codec.DecodingException(input, offset, "Invalid timestamp: " + s);
     }
   }
 
   @Override
-  public void encodeInBinary(Long value, ByteArrayOutputStream out) {
-    long v = value;
+  public void encodeInBinary(LocalDateTime value, ByteArrayOutputStream out) {
+    long v = toPgMicros(value);
     out.write((int) (v >>> 56) & 0xFF);
     out.write((int) (v >>> 48) & 0xFF);
     out.write((int) (v >>> 40) & 0xFF);
@@ -59,25 +60,39 @@ final class TimestampCodec implements Codec<Long> {
   }
 
   @Override
-  public Long decodeInBinary(ByteBuffer buf, int length) {
-    return buf.getLong();
+  public LocalDateTime decodeInBinary(ByteBuffer buf, int length) {
+    long pgMicros = buf.getLong();
+    return fromPgMicros(pgMicros);
   }
 
   @Override
-  public Long random(Random r, int size) {
-    if (size == 0) return 0L;
+  public LocalDateTime random(Random r, int size) {
+    if (size == 0) return LocalDateTime.of(2000, 1, 1, 0, 0, 0);
     long bound = (long) size * 86_400_000_000L;
-    return r.nextLong(-bound, bound + 1);
+    long pgMicros = r.nextLong(-bound, bound + 1);
+    // Truncate to microseconds (which is what PG stores)
+    return fromPgMicros(pgMicros);
   }
 
-  /** Writes a PG timestamp (microseconds from 2000-01-01) as text. */
-  static void writeTimestamp(StringBuilder sb, long pgMicros) {
+  /** Converts a {@link LocalDateTime} to PG microseconds from 2000-01-01. */
+  static long toPgMicros(LocalDateTime dt) {
+    long epochSecond = dt.toEpochSecond(ZoneOffset.UTC);
+    long nanoOfSecond = dt.getNano();
+    long unixMicros = epochSecond * 1_000_000L + nanoOfSecond / 1_000L;
+    return unixMicros - PG_EPOCH_UNIX_MICROS;
+  }
+
+  /** Converts PG microseconds from 2000-01-01 to a {@link LocalDateTime}. */
+  static LocalDateTime fromPgMicros(long pgMicros) {
     long unixMicros = pgMicros + PG_EPOCH_UNIX_MICROS;
     long epochSecond = Math.floorDiv(unixMicros, 1_000_000L);
     long microOfSecond = Math.floorMod(unixMicros, 1_000_000L);
-    LocalDateTime dt =
-        LocalDateTime.ofEpochSecond(epochSecond, (int) (microOfSecond * 1000L), ZoneOffset.UTC);
+    return LocalDateTime.ofEpochSecond(epochSecond, (int) (microOfSecond * 1_000L), ZoneOffset.UTC);
+  }
 
+  /** Writes PG microseconds from 2000-01-01 as text timestamp. */
+  static void writeTimestamp(StringBuilder sb, long pgMicros) {
+    LocalDateTime dt = fromPgMicros(pgMicros);
     sb.append(
         String.format(
             "%04d-%02d-%02d %02d:%02d:%02d",
@@ -87,13 +102,13 @@ final class TimestampCodec implements Codec<Long> {
             dt.getHour(),
             dt.getMinute(),
             dt.getSecond()));
+    long microOfSecond = dt.getNano() / 1_000L;
     TimeCodec.appendFraction(sb, microOfSecond);
   }
 
   /** Parses a timestamp string and returns PG microseconds from 2000-01-01. */
   static long parseTimestamp(String s) {
     // Format: YYYY-MM-DD hh:mm:ss[.ffffff][±tz]
-    // Split at space to get date and time parts
     int spaceIdx = s.indexOf(' ');
     if (spaceIdx < 0) {
       throw new IllegalArgumentException("Invalid timestamp: " + s);
@@ -101,13 +116,12 @@ final class TimestampCodec implements Codec<Long> {
     String datePart = s.substring(0, spaceIdx);
     String timePart = s.substring(spaceIdx + 1);
 
-    // Parse date
     String[] dateFields = datePart.split("-");
     int year = Integer.parseInt(dateFields[0]);
     int month = Integer.parseInt(dateFields[1]);
     int day = Integer.parseInt(dateFields[2]);
 
-    // Strip timezone if present (for timestamptz parsing reuse)
+    // Strip timezone if present
     int tzOffset = 0;
     int tzStart = findTimezoneStart(timePart);
     if (tzStart >= 0) {
@@ -116,7 +130,6 @@ final class TimestampCodec implements Codec<Long> {
       tzOffset = parseTimezoneOffset(tzPart);
     }
 
-    // Parse time
     String[] timeFields = timePart.split(":");
     int hour = Integer.parseInt(timeFields[0]);
     int minute = Integer.parseInt(timeFields[1]);
@@ -140,15 +153,10 @@ final class TimestampCodec implements Codec<Long> {
     return unixMicros - PG_EPOCH_UNIX_MICROS;
   }
 
-  /**
-   * Finds timezone start in a time string. Returns -1 if none found. Searches for + or - that
-   * indicates a timezone offset.
-   */
   static int findTimezoneStart(String s) {
     for (int i = s.length() - 1; i >= 0; i--) {
       char c = s.charAt(i);
       if (c == '+' || c == '-') {
-        // Ensure it's not part of the seconds fraction or an exponent
         if (i > 0 && Character.isDigit(s.charAt(i - 1))) {
           return i;
         }
@@ -157,7 +165,6 @@ final class TimestampCodec implements Codec<Long> {
     return -1;
   }
 
-  /** Parses a timezone offset string like "+00", "+05:30", "-03" to seconds east of UTC. */
   static int parseTimezoneOffset(String tz) {
     char sign = tz.charAt(0);
     String abs = tz.substring(1);

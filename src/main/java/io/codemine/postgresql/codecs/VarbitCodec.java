@@ -24,27 +24,27 @@ final class VarbitCodec implements Codec<Bit> {
 
   @Override
   public void write(StringBuilder sb, Bit value) {
-    BitVarbitUtil.write(sb, value);
+    BitCodec.writeBit(sb, value);
   }
 
   @Override
   public Codec.ParsingResult<Bit> parse(CharSequence input, int offset)
       throws Codec.DecodingException {
-    return BitVarbitUtil.parse(input, offset);
+    return BitCodec.parseBit(input, offset);
   }
 
   @Override
   public void encodeInBinary(Bit value, ByteArrayOutputStream out) {
-    BitVarbitUtil.encodeInBinary(value, out);
+    BitCodec.encodeBitInBinary(value, out);
   }
 
   @Override
   public Bit decodeInBinary(ByteBuffer buf, int length) throws Codec.DecodingException {
-    return BitVarbitUtil.decodeInBinary(buf, length);
+    return BitCodec.decodeBitInBinary(buf);
   }
 
   @Override
   public Bit random(Random r, int size) {
-    return BitVarbitUtil.random(r, size);
+    return BitCodec.randomBit(r, size);
   }
 }

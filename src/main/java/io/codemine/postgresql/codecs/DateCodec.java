@@ -5,8 +5,8 @@ import java.nio.ByteBuffer;
 import java.time.LocalDate;
 import java.util.Random;
 
-/** Codec for PostgreSQL {@code date} values (days offset from 2000-01-01). */
-final class DateCodec implements Codec<Integer> {
+/** Codec for PostgreSQL {@code date} values, represented as {@link LocalDate}. */
+final class DateCodec implements Codec<LocalDate> {
 
   private static final LocalDate PG_EPOCH = LocalDate.of(2000, 1, 1);
   private static final long PG_EPOCH_DAY = PG_EPOCH.toEpochDay();
@@ -27,40 +27,42 @@ final class DateCodec implements Codec<Integer> {
   }
 
   @Override
-  public void write(StringBuilder sb, Integer value) {
-    sb.append(PG_EPOCH.plusDays(value));
+  public void write(StringBuilder sb, LocalDate value) {
+    sb.append(value);
   }
 
   @Override
-  public Codec.ParsingResult<Integer> parse(CharSequence input, int offset)
+  public Codec.ParsingResult<LocalDate> parse(CharSequence input, int offset)
       throws Codec.DecodingException {
     String s = input.subSequence(offset, input.length()).toString().trim();
     try {
       LocalDate date = LocalDate.parse(s);
-      int days = (int) (date.toEpochDay() - PG_EPOCH_DAY);
-      return new Codec.ParsingResult<>(days, input.length());
+      return new Codec.ParsingResult<>(date, input.length());
     } catch (Exception e) {
       throw new Codec.DecodingException(input, offset, "Invalid date: " + s);
     }
   }
 
   @Override
-  public void encodeInBinary(Integer value, ByteArrayOutputStream out) {
-    out.write((value >>> 24) & 0xFF);
-    out.write((value >>> 16) & 0xFF);
-    out.write((value >>> 8) & 0xFF);
-    out.write(value & 0xFF);
+  public void encodeInBinary(LocalDate value, ByteArrayOutputStream out) {
+    int days = (int) (value.toEpochDay() - PG_EPOCH_DAY);
+    out.write((days >>> 24) & 0xFF);
+    out.write((days >>> 16) & 0xFF);
+    out.write((days >>> 8) & 0xFF);
+    out.write(days & 0xFF);
   }
 
   @Override
-  public Integer decodeInBinary(ByteBuffer buf, int length) {
-    return buf.getInt();
+  public LocalDate decodeInBinary(ByteBuffer buf, int length) {
+    int days = buf.getInt();
+    return LocalDate.ofEpochDay(PG_EPOCH_DAY + days);
   }
 
   @Override
-  public Integer random(Random r, int size) {
-    if (size == 0) return 0;
+  public LocalDate random(Random r, int size) {
+    if (size == 0) return PG_EPOCH;
     int bound = Math.min(size * 365, 3_652_425);
-    return r.nextInt(2 * bound + 1) - bound;
+    int offset = r.nextInt(2 * bound + 1) - bound;
+    return PG_EPOCH.plusDays(offset);
   }
 }

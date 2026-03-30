@@ -2,10 +2,11 @@ package io.codemine.postgresql.codecs;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.Random;
 
-/** Codec for PostgreSQL {@code timestamptz} values (microseconds from 2000-01-01 00:00:00 UTC). */
-final class TimestamptzCodec implements Codec<Long> {
+/** Codec for PostgreSQL {@code timestamptz} values, represented as {@link Instant}. */
+final class TimestamptzCodec implements Codec<Instant> {
 
   @Override
   public String name() {
@@ -23,26 +24,27 @@ final class TimestamptzCodec implements Codec<Long> {
   }
 
   @Override
-  public void write(StringBuilder sb, Long value) {
-    TimestampCodec.writeTimestamp(sb, value);
+  public void write(StringBuilder sb, Instant value) {
+    long pgMicros = toPgMicros(value);
+    TimestampCodec.writeTimestamp(sb, pgMicros);
     sb.append("+00");
   }
 
   @Override
-  public Codec.ParsingResult<Long> parse(CharSequence input, int offset)
+  public Codec.ParsingResult<Instant> parse(CharSequence input, int offset)
       throws Codec.DecodingException {
     String s = input.subSequence(offset, input.length()).toString().trim();
     try {
       long pgMicros = TimestampCodec.parseTimestamp(s);
-      return new Codec.ParsingResult<>(pgMicros, input.length());
+      return new Codec.ParsingResult<>(fromPgMicros(pgMicros), input.length());
     } catch (Exception e) {
       throw new Codec.DecodingException(input, offset, "Invalid timestamptz: " + s);
     }
   }
 
   @Override
-  public void encodeInBinary(Long value, ByteArrayOutputStream out) {
-    long v = value;
+  public void encodeInBinary(Instant value, ByteArrayOutputStream out) {
+    long v = toPgMicros(value);
     out.write((int) (v >>> 56) & 0xFF);
     out.write((int) (v >>> 48) & 0xFF);
     out.write((int) (v >>> 40) & 0xFF);
@@ -54,14 +56,30 @@ final class TimestamptzCodec implements Codec<Long> {
   }
 
   @Override
-  public Long decodeInBinary(ByteBuffer buf, int length) {
-    return buf.getLong();
+  public Instant decodeInBinary(ByteBuffer buf, int length) {
+    long pgMicros = buf.getLong();
+    return fromPgMicros(pgMicros);
   }
 
   @Override
-  public Long random(Random r, int size) {
-    if (size == 0) return 0L;
+  public Instant random(Random r, int size) {
+    if (size == 0) return Instant.ofEpochSecond(TimestampCodec.PG_EPOCH_UNIX_SECONDS);
     long bound = (long) size * 86_400_000_000L;
-    return r.nextLong(-bound, bound + 1);
+    long pgMicros = r.nextLong(-bound, bound + 1);
+    return fromPgMicros(pgMicros);
+  }
+
+  /** Converts an {@link Instant} to PG microseconds from 2000-01-01 UTC. */
+  static long toPgMicros(Instant instant) {
+    long unixMicros = instant.getEpochSecond() * 1_000_000L + instant.getNano() / 1_000L;
+    return unixMicros - TimestampCodec.PG_EPOCH_UNIX_MICROS;
+  }
+
+  /** Converts PG microseconds from 2000-01-01 UTC to an {@link Instant}. */
+  static Instant fromPgMicros(long pgMicros) {
+    long unixMicros = pgMicros + TimestampCodec.PG_EPOCH_UNIX_MICROS;
+    long epochSecond = Math.floorDiv(unixMicros, 1_000_000L);
+    long microOfSecond = Math.floorMod(unixMicros, 1_000_000L);
+    return Instant.ofEpochSecond(epochSecond, microOfSecond * 1_000L);
   }
 }
