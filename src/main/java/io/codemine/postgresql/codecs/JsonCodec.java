@@ -61,7 +61,7 @@ final class JsonCodec implements Codec<String> {
         int n = Math.min(r.nextInt(Math.max(1, size)) + 1, 3);
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < n; i++) {
-          if (i > 0) sb.append(",");
+          if (i > 0) sb.append(", ");
           sb.append(r.nextInt(1000));
         }
         sb.append("]");
@@ -71,8 +71,8 @@ final class JsonCodec implements Codec<String> {
         int n = Math.min(r.nextInt(Math.max(1, size)) + 1, 3);
         StringBuilder sb = new StringBuilder("{");
         for (int i = 0; i < n; i++) {
-          if (i > 0) sb.append(",");
-          sb.append("\"k").append(i).append("\":").append(r.nextInt(1000));
+          if (i > 0) sb.append(", ");
+          sb.append("\"k").append(i).append("\": ").append(r.nextInt(1000));
         }
         sb.append("}");
         yield sb.toString();
