@@ -121,15 +121,17 @@ final class IntervalCodec implements Codec<Interval> {
     }
     long hours = timeMicros / 3_600_000_000L;
     timeMicros %= 3_600_000_000L;
-    long minutes = timeMicros / 60_000_000L;
-    timeMicros %= 60_000_000L;
-    long seconds = timeMicros / 1_000_000L;
-    long frac = timeMicros % 1_000_000L;
 
     pad2(sb, hours);
     sb.append(':');
+
+    long minutes = timeMicros / 60_000_000L;
+    timeMicros %= 60_000_000L;
     pad2(sb, minutes);
     sb.append(':');
+
+    long seconds = timeMicros / 1_000_000L;
+    long frac = timeMicros % 1_000_000L;
     pad2(sb, seconds);
     if (frac > 0) {
       appendFraction(sb, frac);
@@ -187,31 +189,26 @@ final class IntervalCodec implements Codec<Interval> {
     }
     String[] parts = s.split(":");
     long hours = Long.parseLong(parts[0]);
-    long minutes = Long.parseLong(parts[1]);
     String secPart = parts[2];
-    long seconds;
-    long micros = 0;
     int dot = secPart.indexOf('.');
     if (dot >= 0) {
-      seconds = Long.parseLong(secPart.substring(0, dot));
-      String frac = secPart.substring(dot + 1);
-      while (frac.length() < 6) {
-        frac = frac + "0";
-      }
-      if (frac.length() > 6) {
-        frac = frac.substring(0, 6);
-      }
-      micros = Long.parseLong(frac);
-    } else {
-      seconds = Long.parseLong(secPart);
+      long minutes = Long.parseLong(parts[1]);
+      long seconds = Long.parseLong(secPart.substring(0, dot));
+      long micros = Long.parseLong((secPart.substring(dot + 1) + "000000").substring(0, 6));
+      long total = hours * 3_600_000_000L + minutes * 60_000_000L + seconds * 1_000_000L + micros;
+      return negative ? -total : total;
     }
-    long total = hours * 3_600_000_000L + minutes * 60_000_000L + seconds * 1_000_000L + micros;
+    long minutes = Long.parseLong(parts[1]);
+    long seconds = Long.parseLong(secPart);
+    long total = hours * 3_600_000_000L + minutes * 60_000_000L + seconds * 1_000_000L;
     return negative ? -total : total;
   }
 
   /** Appends a zero-padded 2-digit integer (hours may exceed 99 for large intervals). */
   private static void pad2(StringBuilder sb, long v) {
-    if (v < 10) sb.append('0');
+    if (v < 10) {
+      sb.append('0');
+    }
     sb.append(v);
   }
 
@@ -226,7 +223,9 @@ final class IntervalCodec implements Codec<Interval> {
     sb.append((char) ('0' + val / 10 % 10));
     sb.append((char) ('0' + val % 10));
     int len = sb.length();
-    while (sb.charAt(len - 1) == '0') len--;
+    while (sb.charAt(len - 1) == '0') {
+      len--;
+    }
     sb.setLength(len);
   }
 }
