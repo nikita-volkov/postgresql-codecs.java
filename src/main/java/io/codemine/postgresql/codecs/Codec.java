@@ -53,7 +53,7 @@ public interface Codec<A> {
   Codec<Line> LINE = new LineCodec();
   Codec<Lseg> LSEG = new LsegCodec();
   Codec<Box> BOX = new BoxCodec();
-  Codec<PgPath> PATH = new PathCodec();
+  Codec<Path> PATH = new PathCodec();
   Codec<Polygon> POLYGON = new PolygonCodec();
   Codec<Circle> CIRCLE = new CircleCodec();
   Codec<Inet> CIDR = new CidrCodec();

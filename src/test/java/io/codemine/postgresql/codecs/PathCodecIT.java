@@ -1,7 +1,7 @@
 package io.codemine.postgresql.codecs;
 
-public class PathCodecIT extends CodecITBase<PgPath> {
+public class PathCodecIT extends CodecITBase<Path> {
   public PathCodecIT() {
-    super(Codec.PATH, PgPath.class);
+    super(Codec.PATH, Path.class);
   }
 }

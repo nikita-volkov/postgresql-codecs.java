@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Random;
 
 /** Codec for PostgreSQL {@code path} values. */
-final class PathCodec implements Codec<PgPath> {
+final class PathCodec implements Codec<Path> {
 
   @Override
   public String name() {
@@ -25,7 +25,7 @@ final class PathCodec implements Codec<PgPath> {
   }
 
   @Override
-  public void write(StringBuilder sb, PgPath value) {
+  public void write(StringBuilder sb, Path value) {
     sb.append(value.closed() ? '(' : '[');
     for (int i = 0; i < value.points().size(); i++) {
       if (i > 0) sb.append(',');
@@ -40,7 +40,7 @@ final class PathCodec implements Codec<PgPath> {
   }
 
   @Override
-  public Codec.ParsingResult<PgPath> parse(CharSequence input, int offset)
+  public Codec.ParsingResult<Path> parse(CharSequence input, int offset)
       throws Codec.DecodingException {
     String s = input.subSequence(offset, input.length()).toString().trim();
     try {
@@ -56,14 +56,14 @@ final class PathCodec implements Codec<PgPath> {
       }
 
       List<Point> points = parsePoints(s);
-      return new Codec.ParsingResult<>(new PgPath(closed, points), input.length());
+      return new Codec.ParsingResult<>(new Path(closed, points), input.length());
     } catch (Exception e) {
       throw new Codec.DecodingException(input, offset, "Invalid path: " + s);
     }
   }
 
   @Override
-  public void encodeInBinary(PgPath value, ByteArrayOutputStream out) {
+  public void encodeInBinary(Path value, ByteArrayOutputStream out) {
     out.write(value.closed() ? 1 : 0);
     int numPoints = value.points().size();
     out.write((numPoints >>> 24) & 0xFF);
@@ -77,25 +77,25 @@ final class PathCodec implements Codec<PgPath> {
   }
 
   @Override
-  public PgPath decodeInBinary(ByteBuffer buf, int length) {
+  public Path decodeInBinary(ByteBuffer buf, int length) {
     boolean closed = buf.get() != 0;
     int numPoints = buf.getInt();
     List<Point> points = new ArrayList<>(numPoints);
     for (int i = 0; i < numPoints; i++) {
       points.add(new Point(buf.getDouble(), buf.getDouble()));
     }
-    return new PgPath(closed, points);
+    return new Path(closed, points);
   }
 
   @Override
-  public PgPath random(Random r, int size) {
+  public Path random(Random r, int size) {
     boolean closed = r.nextBoolean();
     int numPoints = size == 0 ? 1 : r.nextInt(1, Math.min(size, 10) + 1);
     List<Point> points = new ArrayList<>(numPoints);
     for (int i = 0; i < numPoints; i++) {
       points.add(new Point(PointCodec.finiteDouble(r, size), PointCodec.finiteDouble(r, size)));
     }
-    return new PgPath(closed, points);
+    return new Path(closed, points);
   }
 
   /**
