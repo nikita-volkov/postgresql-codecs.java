@@ -1,6 +1,8 @@
 package io.codemine.postgresql.codecs;
 
-public class JsonCodecTest extends CodecTestBase<String> {
+import com.fasterxml.jackson.databind.JsonNode;
+
+public class JsonCodecTest extends CodecTestBase<JsonNode> {
   public JsonCodecTest() {
     super(Codec.JSON);
   }

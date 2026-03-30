@@ -1,12 +1,19 @@
 package io.codemine.postgresql.codecs;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.Random;
 
-/** Codec for PostgreSQL {@code jsonb} values. */
-final class JsonbCodec implements Codec<String> {
+/** Codec for PostgreSQL {@code jsonb} values, represented as Jackson {@link JsonNode}. */
+final class JsonbCodec implements Codec<JsonNode> {
+
+  private static final ObjectMapper MAPPER = new ObjectMapper();
 
   @Override
   public String name() {
@@ -24,59 +31,81 @@ final class JsonbCodec implements Codec<String> {
   }
 
   @Override
-  public void write(StringBuilder sb, String value) {
-    sb.append(value);
+  public void write(StringBuilder sb, JsonNode value) {
+    sb.append(value.toString());
   }
 
   @Override
-  public Codec.ParsingResult<String> parse(CharSequence input, int offset) {
-    return new Codec.ParsingResult<>(
-        input.subSequence(offset, input.length()).toString(), input.length());
+  public Codec.ParsingResult<JsonNode> parse(CharSequence input, int offset)
+      throws Codec.DecodingException {
+    String s = input.subSequence(offset, input.length()).toString();
+    try {
+      return new Codec.ParsingResult<>(MAPPER.readTree(s), input.length());
+    } catch (JsonProcessingException e) {
+      throw new Codec.DecodingException(input, offset, "Invalid JSON: " + e.getMessage());
+    }
   }
 
   @Override
-  public void encodeInBinary(String value, ByteArrayOutputStream out) {
-    out.write(1); // JSONB version byte
-    byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
-    out.write(bytes, 0, bytes.length);
+  public void encodeInBinary(JsonNode value, ByteArrayOutputStream out) {
+    try {
+      out.write(1); // JSONB version byte
+      byte[] bytes = MAPPER.writeValueAsBytes(value);
+      out.write(bytes, 0, bytes.length);
+    } catch (IOException e) {
+      throw new RuntimeException("Failed to encode JSONB", e);
+    }
   }
 
   @Override
-  public String decodeInBinary(ByteBuffer buf, int length) throws Codec.DecodingException {
+  public JsonNode decodeInBinary(ByteBuffer buf, int length) throws Codec.DecodingException {
     byte version = buf.get();
     if (version != 1) {
       throw new Codec.DecodingException("Unsupported jsonb version: " + version);
     }
     byte[] bytes = new byte[length - 1];
     buf.get(bytes);
-    return new String(bytes, StandardCharsets.UTF_8);
+    try {
+      return MAPPER.readTree(bytes);
+    } catch (IOException e) {
+      throw new Codec.DecodingException("Invalid JSONB binary: " + e.getMessage());
+    }
   }
 
   @Override
-  public String random(Random r, int size) {
+  public JsonNode random(Random r, int size) {
+    return randomJsonNode(r, size, 0);
+  }
+
+  private static JsonNode randomJsonNode(Random r, int size, int depth) {
+    // At depth >= 2 or size 0, produce a scalar to bound recursion
+    if (depth >= 2 || size == 0) {
+      int choice = r.nextInt(2);
+      if (choice == 0) {
+        return MAPPER.getNodeFactory().numberNode(r.nextInt(size + 1));
+      } else {
+        return MAPPER.getNodeFactory().textNode(randomAlphanumeric(r, Math.max(1, size)));
+      }
+    }
     int choice = r.nextInt(4);
     return switch (choice) {
-      case 0 -> String.valueOf(r.nextInt(size + 1));
-      case 1 -> "\"" + randomAlphanumeric(r, Math.max(1, size)) + "\"";
+      case 0 -> MAPPER.getNodeFactory().numberNode(r.nextInt(size + 1));
+      case 1 -> MAPPER.getNodeFactory().textNode(randomAlphanumeric(r, Math.max(1, size)));
       case 2 -> {
         int n = Math.min(r.nextInt(Math.max(1, size)) + 1, 3);
-        StringBuilder sb = new StringBuilder("[");
+        ArrayNode arr = MAPPER.createArrayNode();
         for (int i = 0; i < n; i++) {
-          if (i > 0) sb.append(",");
-          sb.append(r.nextInt(1000));
+          arr.add(randomJsonNode(r, size - 1, depth + 1));
         }
-        sb.append("]");
-        yield sb.toString();
+        yield arr;
       }
       default -> {
         int n = Math.min(r.nextInt(Math.max(1, size)) + 1, 3);
-        StringBuilder sb = new StringBuilder("{");
+        ObjectNode obj = MAPPER.createObjectNode();
         for (int i = 0; i < n; i++) {
-          if (i > 0) sb.append(",");
-          sb.append("\"k").append(i).append("\":").append(r.nextInt(1000));
+          obj.set("k" + i, randomJsonNode(r, size - 1, depth + 1));
         }
-        sb.append("}");
-        yield sb.toString();
+        yield obj;
       }
     };
   }

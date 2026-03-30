@@ -1,7 +1,9 @@
 package io.codemine.postgresql.codecs;
 
-public class JsonCodecIT extends CodecITBase<String> {
+import com.fasterxml.jackson.databind.JsonNode;
+
+public class JsonCodecIT extends CodecITBase<JsonNode> {
   public JsonCodecIT() {
-    super(Codec.JSON, String.class);
+    super(Codec.JSON, JsonNode.class);
   }
 }

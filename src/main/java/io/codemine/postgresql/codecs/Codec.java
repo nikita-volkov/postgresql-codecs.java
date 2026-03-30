@@ -1,5 +1,6 @@
 package io.codemine.postgresql.codecs;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -36,8 +37,8 @@ public interface Codec<A> {
   Codec<java.math.BigDecimal> NUMERIC = new NumericCodec();
   Codec<Bytea> BYTEA = new ByteaCodec();
   Codec<java.util.UUID> UUID = new UuidCodec();
-  Codec<String> JSON = new JsonCodec();
-  Codec<String> JSONB = new JsonbCodec();
+  Codec<JsonNode> JSON = new JsonCodec();
+  Codec<JsonNode> JSONB = new JsonbCodec();
   Codec<String> VARCHAR = new VarcharCodec();
   Codec<String> BPCHAR = new BpcharCodec();
   Codec<Byte> CHAR = new CharCodec();
