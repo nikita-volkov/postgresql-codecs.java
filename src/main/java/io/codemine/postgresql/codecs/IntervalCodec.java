@@ -119,7 +119,12 @@ final class IntervalCodec implements Codec<Interval> {
     long frac = timeMicros % 1_000_000L;
 
     sb.append(String.format("%02d:%02d:%02d", hours, minutes, seconds));
-    TimeCodec.appendFraction(sb, frac);
+    if (frac > 0) {
+      String f = String.format("%06d", frac);
+      int end = f.length();
+      while (end > 0 && f.charAt(end - 1) == '0') end--;
+      sb.append('.').append(f, 0, end);
+    }
   }
 
   /** Parses a PG interval output string. */

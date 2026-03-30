@@ -26,8 +26,37 @@ final class TimetzCodec implements Codec<Timetz> {
 
   @Override
   public void write(StringBuilder sb, Timetz value) {
-    TimeCodec.writeTime(sb, value.time());
-    writeTimezone(sb, value.zone());
+    // Write hh:mm:ss[.ffffff]
+    long total = value.time();
+    long hours = total / 3_600_000_000L;
+    total %= 3_600_000_000L;
+    long minutes = total / 60_000_000L;
+    total %= 60_000_000L;
+    long seconds = total / 1_000_000L;
+    long frac = total % 1_000_000L;
+    sb.append(String.format("%02d:%02d:%02d", hours, minutes, seconds));
+    if (frac > 0) {
+      String f = String.format("%06d", frac);
+      int end = f.length();
+      while (end > 0 && f.charAt(end - 1) == '0') end--;
+      sb.append('.').append(f, 0, end);
+    }
+
+    // Write timezone: internal zone has inverted sign (negative = UTC+)
+    int displayOffset = -value.zone();
+    char sign = displayOffset >= 0 ? '+' : '-';
+    int abs = Math.abs(displayOffset);
+    int tzHours = abs / 3600;
+    int tzMinutes = (abs % 3600) / 60;
+    int tzSeconds = abs % 60;
+    sb.append(sign);
+    sb.append(String.format("%02d", tzHours));
+    if (tzMinutes != 0 || tzSeconds != 0) {
+      sb.append(':').append(String.format("%02d", tzMinutes));
+      if (tzSeconds != 0) {
+        sb.append(':').append(String.format("%02d", tzSeconds));
+      }
+    }
   }
 
   @Override
@@ -41,7 +70,7 @@ final class TimetzCodec implements Codec<Timetz> {
       String timePart = s.substring(0, tzStart);
       String tzPart = s.substring(tzStart);
 
-      long time = TimeCodec.parseTime(timePart, 0);
+      long time = parseTime(timePart);
       int zone = parseTimezone(tzPart);
 
       return new Codec.ParsingResult<>(new Timetz(time, zone), input.length());
@@ -82,39 +111,31 @@ final class TimetzCodec implements Codec<Timetz> {
     return new Timetz(time, zone);
   }
 
-  /**
-   * Writes timezone offset. The internal zone value has inverted sign: internal {@code < 0} means
-   * UTC+X, displayed as "+".
-   */
-  static void writeTimezone(StringBuilder sb, int zone) {
-    int displayOffset = -zone;
-    char sign = displayOffset >= 0 ? '+' : '-';
-    int abs = Math.abs(displayOffset);
-    int hours = abs / 3600;
-    int minutes = (abs % 3600) / 60;
-    int seconds = abs % 60;
-
-    sb.append(sign);
-    sb.append(String.format("%02d", hours));
-    if (minutes != 0 || seconds != 0) {
-      sb.append(':').append(String.format("%02d", minutes));
-      if (seconds != 0) {
-        sb.append(':').append(String.format("%02d", seconds));
-      }
+  private static long parseTime(String s) {
+    String[] parts = s.split(":");
+    if (parts.length < 3) throw new IllegalArgumentException("Invalid time: " + s);
+    long hours = Long.parseLong(parts[0]);
+    long minutes = Long.parseLong(parts[1]);
+    String secPart = parts[2];
+    long seconds;
+    long micros = 0;
+    int dot = secPart.indexOf('.');
+    if (dot >= 0) {
+      seconds = Long.parseLong(secPart.substring(0, dot));
+      String frac = secPart.substring(dot + 1);
+      while (frac.length() < 6) frac = frac + "0";
+      if (frac.length() > 6) frac = frac.substring(0, 6);
+      micros = Long.parseLong(frac);
+    } else {
+      seconds = Long.parseLong(secPart);
     }
+    return hours * 3_600_000_000L + minutes * 60_000_000L + seconds * 1_000_000L + micros;
   }
 
-  /**
-   * Finds the start index of the timezone part in a timetz string. The timezone starts at the last
-   * '+' or '-' that is not part of a number exponent.
-   */
   private static int findTimezoneStart(String s) {
-    // Search backwards for + or - that marks the timezone
     for (int i = s.length() - 1; i >= 0; i--) {
       char c = s.charAt(i);
       if (c == '+' || c == '-') {
-        // Make sure this is after the seconds part, not inside fractional seconds
-        // The timezone sign comes after the time part (after hh:mm:ss or hh:mm:ss.ffffff)
         if (i > 0 && s.charAt(i - 1) != ':' && s.charAt(i - 1) != '.') {
           return i;
         }
@@ -123,10 +144,6 @@ final class TimetzCodec implements Codec<Timetz> {
     throw new IllegalArgumentException("No timezone found in: " + s);
   }
 
-  /**
-   * Parses a timezone string like "+05", "+05:30", "-03:00" and returns the internal zone value
-   * (inverted sign).
-   */
   private static int parseTimezone(String tz) {
     char sign = tz.charAt(0);
     String abs = tz.substring(1);

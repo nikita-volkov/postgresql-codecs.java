@@ -52,7 +52,7 @@ final class JsonCodec implements Codec<String> {
     return randomJson(r, size);
   }
 
-  static String randomJson(Random r, int size) {
+  private static String randomJson(Random r, int size) {
     int choice = r.nextInt(4);
     return switch (choice) {
       case 0 -> String.valueOf(r.nextInt(size + 1));

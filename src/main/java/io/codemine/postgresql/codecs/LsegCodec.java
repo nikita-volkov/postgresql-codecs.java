@@ -45,10 +45,22 @@ final class LsegCodec implements Codec<Lseg> {
       if (s.endsWith("]")) s = s.substring(0, s.length() - 1);
       s = s.trim();
 
-      // Parse two points: (x1,y1),(x2,y2)
-      int midComma = findPointSeparator(s);
-      Point p1 = PointCodec.parsePoint(s.substring(0, midComma));
-      Point p2 = PointCodec.parsePoint(s.substring(midComma + 1));
+      // Find the comma between the two point literals: ),(
+      int midComma = -1;
+      int depth = 0;
+      for (int i = 0; i < s.length(); i++) {
+        char c = s.charAt(i);
+        if (c == '(') depth++;
+        else if (c == ')') depth--;
+        else if (c == ',' && depth == 0) {
+          midComma = i;
+          break;
+        }
+      }
+      if (midComma < 0) throw new IllegalArgumentException("No point separator in: " + s);
+
+      Point p1 = parsePoint(s.substring(0, midComma));
+      Point p2 = parsePoint(s.substring(midComma + 1));
 
       return new Codec.ParsingResult<>(new Lseg(p1.x(), p1.y(), p2.x(), p2.y()), input.length());
     } catch (Exception e) {
@@ -58,10 +70,10 @@ final class LsegCodec implements Codec<Lseg> {
 
   @Override
   public void encodeInBinary(Lseg value, ByteArrayOutputStream out) {
-    PointCodec.writeFloat8(out, value.x1());
-    PointCodec.writeFloat8(out, value.y1());
-    PointCodec.writeFloat8(out, value.x2());
-    PointCodec.writeFloat8(out, value.y2());
+    writeFloat8(out, value.x1());
+    writeFloat8(out, value.y1());
+    writeFloat8(out, value.x2());
+    writeFloat8(out, value.y2());
   }
 
   @Override
@@ -73,24 +85,33 @@ final class LsegCodec implements Codec<Lseg> {
   public Lseg random(Random r, int size) {
     if (size == 0) return new Lseg(0.0, 0.0, 0.0, 0.0);
     return new Lseg(
-        PointCodec.finiteDouble(r, size),
-        PointCodec.finiteDouble(r, size),
-        PointCodec.finiteDouble(r, size),
-        PointCodec.finiteDouble(r, size));
+        (r.nextDouble() * 2 - 1) * size,
+        (r.nextDouble() * 2 - 1) * size,
+        (r.nextDouble() * 2 - 1) * size,
+        (r.nextDouble() * 2 - 1) * size);
   }
 
-  /**
-   * Finds the comma between two point literals: "(x1,y1),(x2,y2)". The separator is the comma that
-   * appears between a closing and opening parenthesis: ),(
-   */
-  static int findPointSeparator(String s) {
-    int depth = 0;
-    for (int i = 0; i < s.length(); i++) {
-      char c = s.charAt(i);
-      if (c == '(') depth++;
-      else if (c == ')') depth--;
-      else if (c == ',' && depth == 0) return i;
+  private static Point parsePoint(String s) {
+    s = s.trim();
+    if (s.startsWith("(") && s.endsWith(")")) {
+      s = s.substring(1, s.length() - 1);
     }
-    throw new IllegalArgumentException("No point separator found in: " + s);
+    int comma = s.indexOf(',');
+    if (comma < 0) throw new IllegalArgumentException("No comma in point: " + s);
+    double x = Double.parseDouble(s.substring(0, comma).trim());
+    double y = Double.parseDouble(s.substring(comma + 1).trim());
+    return new Point(x, y);
+  }
+
+  private static void writeFloat8(ByteArrayOutputStream out, double value) {
+    long bits = Double.doubleToLongBits(value);
+    out.write((int) (bits >>> 56) & 0xFF);
+    out.write((int) (bits >>> 48) & 0xFF);
+    out.write((int) (bits >>> 40) & 0xFF);
+    out.write((int) (bits >>> 32) & 0xFF);
+    out.write((int) (bits >>> 24) & 0xFF);
+    out.write((int) (bits >>> 16) & 0xFF);
+    out.write((int) (bits >>> 8) & 0xFF);
+    out.write((int) bits & 0xFF);
   }
 }

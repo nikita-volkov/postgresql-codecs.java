@@ -53,9 +53,9 @@ final class LineCodec implements Codec<Line> {
 
   @Override
   public void encodeInBinary(Line value, ByteArrayOutputStream out) {
-    PointCodec.writeFloat8(out, value.a());
-    PointCodec.writeFloat8(out, value.b());
-    PointCodec.writeFloat8(out, value.c());
+    writeFloat8(out, value.a());
+    writeFloat8(out, value.b());
+    writeFloat8(out, value.c());
   }
 
   @Override
@@ -66,10 +66,22 @@ final class LineCodec implements Codec<Line> {
   @Override
   public Line random(Random r, int size) {
     if (size == 0) return new Line(1.0, 0.0, 0.0);
-    double a = PointCodec.finiteDouble(r, size);
-    double b = PointCodec.finiteDouble(r, size);
+    double a = (r.nextDouble() * 2 - 1) * size;
+    double b = (r.nextDouble() * 2 - 1) * size;
     if (a == 0 && b == 0) b = 1.0;
-    double c = PointCodec.finiteDouble(r, size);
+    double c = (r.nextDouble() * 2 - 1) * size;
     return new Line(a, b, c);
+  }
+
+  private static void writeFloat8(ByteArrayOutputStream out, double value) {
+    long bits = Double.doubleToLongBits(value);
+    out.write((int) (bits >>> 56) & 0xFF);
+    out.write((int) (bits >>> 48) & 0xFF);
+    out.write((int) (bits >>> 40) & 0xFF);
+    out.write((int) (bits >>> 32) & 0xFF);
+    out.write((int) (bits >>> 24) & 0xFF);
+    out.write((int) (bits >>> 16) & 0xFF);
+    out.write((int) (bits >>> 8) & 0xFF);
+    out.write((int) bits & 0xFF);
   }
 }

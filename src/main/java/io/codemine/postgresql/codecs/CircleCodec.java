@@ -42,13 +42,11 @@ final class CircleCodec implements Codec<Circle> {
       if (s.startsWith("<") && s.endsWith(">")) {
         s = s.substring(1, s.length() - 1);
       }
-      // Now: (x,y),r
-      // Find the closing paren of the point
+      // Now: (x,y),r — find the closing paren of the point
       int closeParen = s.indexOf(')');
       String pointStr = s.substring(0, closeParen + 1);
-      // After the point there's a comma then r
       String rStr = s.substring(closeParen + 2).trim();
-      Point center = PointCodec.parsePoint(pointStr);
+      Point center = parsePoint(pointStr);
       double r = Double.parseDouble(rStr);
       return new Codec.ParsingResult<>(new Circle(center.x(), center.y(), r), input.length());
     } catch (Exception e) {
@@ -58,9 +56,9 @@ final class CircleCodec implements Codec<Circle> {
 
   @Override
   public void encodeInBinary(Circle value, ByteArrayOutputStream out) {
-    PointCodec.writeFloat8(out, value.x());
-    PointCodec.writeFloat8(out, value.y());
-    PointCodec.writeFloat8(out, value.r());
+    writeFloat8(out, value.x());
+    writeFloat8(out, value.y());
+    writeFloat8(out, value.r());
   }
 
   @Override
@@ -72,6 +70,30 @@ final class CircleCodec implements Codec<Circle> {
   public Circle random(Random r, int size) {
     if (size == 0) return new Circle(0.0, 0.0, 0.0);
     return new Circle(
-        PointCodec.finiteDouble(r, size), PointCodec.finiteDouble(r, size), r.nextDouble() * size);
+        (r.nextDouble() * 2 - 1) * size, (r.nextDouble() * 2 - 1) * size, r.nextDouble() * size);
+  }
+
+  private static Point parsePoint(String s) {
+    s = s.trim();
+    if (s.startsWith("(") && s.endsWith(")")) {
+      s = s.substring(1, s.length() - 1);
+    }
+    int comma = s.indexOf(',');
+    if (comma < 0) throw new IllegalArgumentException("No comma in point: " + s);
+    double x = Double.parseDouble(s.substring(0, comma).trim());
+    double y = Double.parseDouble(s.substring(comma + 1).trim());
+    return new Point(x, y);
+  }
+
+  private static void writeFloat8(ByteArrayOutputStream out, double value) {
+    long bits = Double.doubleToLongBits(value);
+    out.write((int) (bits >>> 56) & 0xFF);
+    out.write((int) (bits >>> 48) & 0xFF);
+    out.write((int) (bits >>> 40) & 0xFF);
+    out.write((int) (bits >>> 32) & 0xFF);
+    out.write((int) (bits >>> 24) & 0xFF);
+    out.write((int) (bits >>> 16) & 0xFF);
+    out.write((int) (bits >>> 8) & 0xFF);
+    out.write((int) bits & 0xFF);
   }
 }

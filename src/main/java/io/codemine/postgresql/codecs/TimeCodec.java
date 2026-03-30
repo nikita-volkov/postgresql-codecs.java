@@ -67,7 +67,7 @@ final class TimeCodec implements Codec<LocalTime> {
   }
 
   /** Writes a time-of-day in microseconds to the StringBuilder as hh:mm:ss[.ffffff]. */
-  static void writeTime(StringBuilder sb, long micros) {
+  private static void writeTime(StringBuilder sb, long micros) {
     long total = micros;
     long hours = total / 3_600_000_000L;
     total %= 3_600_000_000L;
@@ -81,7 +81,7 @@ final class TimeCodec implements Codec<LocalTime> {
   }
 
   /** Appends fractional seconds (1-6 digits, trailing zeros stripped) if non-zero. */
-  static void appendFraction(StringBuilder sb, long micros) {
+  private static void appendFraction(StringBuilder sb, long micros) {
     if (micros > 0) {
       String f = String.format("%06d", micros);
       int end = f.length();
@@ -94,7 +94,7 @@ final class TimeCodec implements Codec<LocalTime> {
    * Parses a time string (hh:mm:ss[.ffffff]) starting at the given position and returns the time in
    * microseconds.
    */
-  static long parseTime(CharSequence input, int pos) {
+  private static long parseTime(CharSequence input, int pos) {
     String s = input.subSequence(pos, input.length()).toString();
     String[] parts = s.split(":");
     if (parts.length < 3) {
