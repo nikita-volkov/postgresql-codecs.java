@@ -1,10 +1,7 @@
 package io.codemine.postgresql.codecs;
 
-import java.io.ByteArrayOutputStream;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Random;
+
 import net.jqwik.api.Group;
 
 /**
@@ -22,119 +19,6 @@ import net.jqwik.api.Group;
  * </ol>
  */
 class CompositeCodecTest {
-
-  // -----------------------------------------------------------------------
-  // Minimal scalar codecs used throughout
-  // -----------------------------------------------------------------------
-
-  /** PostgreSQL {@code int4} codec. */
-  static final Codec<Integer> INT4 =
-      new Codec<>() {
-        @Override
-        public String name() {
-          return "int4";
-        }
-
-        @Override
-        public int scalarOid() {
-          return 23;
-        }
-
-        @Override
-        public int arrayOid() {
-          return 1007;
-        }
-
-        @Override
-        public void write(StringBuilder sb, Integer value) {
-          sb.append(value);
-        }
-
-        @Override
-        public Codec.ParsingResult<Integer> parse(CharSequence input, int offset)
-            throws Codec.ParseException {
-          try {
-            int v = Integer.parseInt(input.subSequence(offset, input.length()).toString().trim());
-            return new Codec.ParsingResult<>(v, input.length());
-          } catch (NumberFormatException e) {
-            throw new Codec.ParseException(input, offset, "Invalid int4: " + e.getMessage());
-          }
-        }
-
-        @Override
-        public void encodeInBinary(Integer value, ByteArrayOutputStream out) {
-          out.write((value >>> 24) & 0xFF);
-          out.write((value >>> 16) & 0xFF);
-          out.write((value >>> 8) & 0xFF);
-          out.write(value & 0xFF);
-        }
-
-        @Override
-        public Integer decodeInBinary(ByteBuffer buf, int length) {
-          return buf.getInt();
-        }
-
-        @Override
-        public Integer random(Random r) {
-          // Keep values small so they print without special chars
-          return r.nextInt(10_000) - 5_000;
-        }
-      };
-
-  /** PostgreSQL {@code text} codec. Produces raw text; the composite codec handles quoting. */
-  static final Codec<String> TEXT =
-      new Codec<>() {
-        @Override
-        public String name() {
-          return "text";
-        }
-
-        @Override
-        public int scalarOid() {
-          return 25;
-        }
-
-        @Override
-        public int arrayOid() {
-          return 1009;
-        }
-
-        @Override
-        public void write(StringBuilder sb, String value) {
-          sb.append(value);
-        }
-
-        @Override
-        public Codec.ParsingResult<String> parse(CharSequence input, int offset) {
-          return new Codec.ParsingResult<>(
-              input.subSequence(offset, input.length()).toString(), input.length());
-        }
-
-        @Override
-        public void encodeInBinary(String value, ByteArrayOutputStream out) {
-          byte[] bytes = value.getBytes(StandardCharsets.UTF_8);
-          out.write(bytes, 0, bytes.length);
-        }
-
-        @Override
-        public String decodeInBinary(ByteBuffer buf, int length) {
-          byte[] bytes = new byte[length];
-          buf.get(bytes);
-          return new String(bytes, StandardCharsets.UTF_8);
-        }
-
-        @Override
-        public String random(Random r) {
-          // Include special chars to exercise composite quoting/escaping paths
-          String chars = "abcdefghijklmnopqABCDEF0123,()\"\\";
-          int len = r.nextInt(10);
-          StringBuilder sb = new StringBuilder(len);
-          for (int i = 0; i < len; i++) {
-            sb.append(chars.charAt(r.nextInt(chars.length())));
-          }
-          return sb.toString();
-        }
-      };
 
   // -----------------------------------------------------------------------
   // Test value types (records)
@@ -157,8 +41,8 @@ class CompositeCodecTest {
           "",
           "test_pt",
           (Integer x) -> (Integer y) -> new Point(x, y),
-          new CompositeCodec.Field<>("x", Point::x, INT4),
-          new CompositeCodec.Field<>("y", Point::y, INT4));
+          new CompositeCodec.Field<>("x", Point::x, new Int4Codec()),
+          new CompositeCodec.Field<>("y", Point::y, new Int4Codec()));
 
   static final CompositeCodec<Segment> SEGMENT_CODEC =
       new CompositeCodec<>(
@@ -173,8 +57,8 @@ class CompositeCodecTest {
           "",
           "test_tagged",
           (String tag) -> (List<String> items) -> new TaggedData(tag, items),
-          new CompositeCodec.Field<>("tag", TaggedData::tag, TEXT),
-          new CompositeCodec.Field<>("items", TaggedData::items, TEXT.inDim()));
+          new CompositeCodec.Field<>("tag", TaggedData::tag, new TextCodec()),
+          new CompositeCodec.Field<>("items", TaggedData::items, new TextCodec().inDim()));
 
   static final CompositeCodec<AnnotatedSegment> ANNOTATED_CODEC =
       new CompositeCodec<>(
@@ -182,9 +66,9 @@ class CompositeCodecTest {
           "test_ann_seg",
           (String label) ->
               (Segment seg) -> (List<String> tags) -> new AnnotatedSegment(label, seg, tags),
-          new CompositeCodec.Field<>("label", AnnotatedSegment::label, TEXT),
+          new CompositeCodec.Field<>("label", AnnotatedSegment::label, new TextCodec()),
           new CompositeCodec.Field<>("seg", AnnotatedSegment::seg, SEGMENT_CODEC),
-          new CompositeCodec.Field<>("tags", AnnotatedSegment::tags, TEXT.inDim()));
+          new CompositeCodec.Field<>("tags", AnnotatedSegment::tags, new TextCodec().inDim()));
 
   // -----------------------------------------------------------------------
   // Test groups — each extends CodecTestBase to get the full binary+text
