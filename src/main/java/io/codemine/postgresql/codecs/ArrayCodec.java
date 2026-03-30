@@ -245,6 +245,9 @@ final class ArrayCodec<A> implements Codec<List<A>> {
   // -----------------------------------------------------------------------
   @Override
   public List<A> random(Random r, int size) {
+    if (size > 10) {
+      size = 10; // prevent generating huge arrays
+    }
     // Determine the inner size once and reuse it for every element.  This is critical for
     // multi-dimensional arrays: all sub-arrays at the same level must have the same length to
     // satisfy PostgreSQL's rectangular-array constraint.
