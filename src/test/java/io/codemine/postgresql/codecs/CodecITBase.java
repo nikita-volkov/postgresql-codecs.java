@@ -14,6 +14,7 @@ import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 import net.jqwik.api.Arbitrary;
 import net.jqwik.api.ForAll;
 import net.jqwik.api.Property;
@@ -35,6 +36,48 @@ abstract class CodecITBase<A> {
     container = new PostgreSQLContainer<>("postgres:18");
     container.start();
   }
+
+  /**
+   * Holds all shared connections for a single concrete test class. Created once per subclass and
+   * cached in {@link #sharedConnectionsByClass} so that jqwik's per-property instance creation does
+   * not open fresh connections on each instantiation.
+   */
+  private static class SharedConnections {
+    final java.sql.Connection pgjdbcConnection;
+    final Connection binaryInBinaryOutConn;
+    final Connection textInTextOutConn;
+    final Connection textInBinaryOutConn;
+    final Connection binaryInTextOutConn;
+
+    SharedConnections(
+        java.sql.Connection pgjdbcConnection,
+        Connection binaryInBinaryOutConn,
+        Connection textInTextOutConn,
+        Connection textInBinaryOutConn,
+        Connection binaryInTextOutConn) {
+      this.pgjdbcConnection = pgjdbcConnection;
+      this.binaryInBinaryOutConn = binaryInBinaryOutConn;
+      this.textInTextOutConn = textInTextOutConn;
+      this.textInBinaryOutConn = textInBinaryOutConn;
+      this.binaryInTextOutConn = binaryInTextOutConn;
+    }
+
+    void close() throws Exception {
+      pgjdbcConnection.close();
+      Mono.from(binaryInBinaryOutConn.close())
+          .then(Mono.from(textInTextOutConn.close()))
+          .then(Mono.from(textInBinaryOutConn.close()))
+          .then(Mono.from(binaryInTextOutConn.close()))
+          .block();
+    }
+  }
+
+  /**
+   * Cache of shared connections keyed by concrete test class. Ensures that connections are opened
+   * exactly once per subclass regardless of how many instances the test engines create.
+   */
+  private static final ConcurrentHashMap<Class<?>, SharedConnections> sharedConnectionsByClass =
+      new ConcurrentHashMap<>();
 
   private final Codec<A> codec;
   private final Class<A> type;
@@ -76,6 +119,24 @@ abstract class CodecITBase<A> {
     this.type = type;
     this.arrayCodec = codec.inDim();
 
+    // Retrieve or create shared connections for this concrete subclass.
+    // computeIfAbsent ensures that even when jqwik instantiates the class
+    // multiple times (once per @Property), we only ever open the 5
+    // connections once.
+    SharedConnections conns =
+        sharedConnectionsByClass.computeIfAbsent(
+            this.getClass(), cls -> createSharedConnections(codec, type));
+
+    pgjdbcConnection = conns.pgjdbcConnection;
+    binaryInBinaryOutConn = conns.binaryInBinaryOutConn;
+    textInTextOutConn = conns.textInTextOutConn;
+    textInBinaryOutConn = conns.textInBinaryOutConn;
+    binaryInTextOutConn = conns.binaryInTextOutConn;
+  }
+
+  @SuppressWarnings("unchecked")
+  private SharedConnections createSharedConnections(Codec<A> codec, Class<A> type) {
+    java.sql.Connection pgjdbc;
     try {
       var props = new java.util.Properties();
       props.setProperty("user", container.getUsername());
@@ -84,44 +145,41 @@ abstract class CodecITBase<A> {
       // columns remain in text format (avoids rs.getString() returning
       // "[B@…" for bytea columns after the binary-mode switch threshold).
       props.setProperty("prepareThreshold", "0");
-      pgjdbcConnection = DriverManager.getConnection(container.getJdbcUrl(), props);
+      pgjdbc = DriverManager.getConnection(container.getJdbcUrl(), props);
     } catch (SQLException e) {
       throw new RuntimeException("Failed to open connection", e);
     }
 
     Class<List<A>> listClass = (Class<List<A>>) (Class<?>) List.class;
+    Codec<List<A>> arrayCd = codec.inDim();
 
-    // Each connection handles both the scalar and array codec, so no extra connections are needed.
-    binaryInBinaryOutConn =
+    // Each connection handles both the scalar and array codec.
+    return new SharedConnections(
+        pgjdbc,
         r2dbcConnect(
             true,
             new BinaryInBinaryOutR2dbcCodec<>(codec, type),
-            new BinaryInBinaryOutR2dbcCodec<>(arrayCodec, listClass));
-    textInTextOutConn =
+            new BinaryInBinaryOutR2dbcCodec<>(arrayCd, listClass)),
         r2dbcConnect(
             false,
             new TextInTextOutR2dbcCodec<>(codec, type),
-            new TextInTextOutR2dbcCodec<>(arrayCodec, listClass));
-    textInBinaryOutConn =
+            new TextInTextOutR2dbcCodec<>(arrayCd, listClass)),
         r2dbcConnect(
             true,
             new TextInBinaryOutR2dbcCodec<>(codec, type),
-            new TextInBinaryOutR2dbcCodec<>(arrayCodec, listClass));
-    binaryInTextOutConn =
+            new TextInBinaryOutR2dbcCodec<>(arrayCd, listClass)),
         r2dbcConnect(
             false,
             new BinaryInTextOutR2dbcCodec<>(codec, type),
-            new BinaryInTextOutR2dbcCodec<>(arrayCodec, listClass));
+            new BinaryInTextOutR2dbcCodec<>(arrayCd, listClass)));
   }
 
   @AfterAll
   void closeConnections() throws Exception {
-    pgjdbcConnection.close();
-    Mono.from(binaryInBinaryOutConn.close())
-        .then(Mono.from(textInTextOutConn.close()))
-        .then(Mono.from(textInBinaryOutConn.close()))
-        .then(Mono.from(binaryInTextOutConn.close()))
-        .block();
+    SharedConnections conns = sharedConnectionsByClass.remove(this.getClass());
+    if (conns != null) {
+      conns.close();
+    }
   }
 
   // -----------------------------------------------------------------------
