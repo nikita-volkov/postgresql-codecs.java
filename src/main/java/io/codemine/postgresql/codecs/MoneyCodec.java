@@ -1,6 +1,7 @@
 package io.codemine.postgresql.codecs;
 
 import java.io.ByteArrayOutputStream;
+import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.Random;
 
@@ -22,51 +23,71 @@ final class MoneyCodec implements Codec<Long> {
     return 791;
   }
 
+  /**
+   * Writes the money value as a plain decimal (e.g. {@code 1234.56} or {@code -1234.56}) without
+   * any currency symbol or grouping separators, which PostgreSQL accepts on all locales.
+   */
   @Override
   public void write(StringBuilder sb, Long value) {
-    boolean negative = value < 0;
-    long abs = Math.abs(value);
-    long dollars = abs / 100;
-    long cents = abs % 100;
-    if (negative) {
-      sb.append("-");
-    }
-    sb.append("$").append(dollars).append(".").append(String.format("%02d", cents));
+    // BigDecimal.valueOf(unscaled, scale) is safe for all long values including Long.MIN_VALUE.
+    sb.append(BigDecimal.valueOf(value, 2).toPlainString());
   }
 
+  /**
+   * Parses PostgreSQL money text output, which is locale-dependent (e.g. {@code $1,234.56}, {@code
+   * €1.234,56}). This implementation:
+   *
+   * <ul>
+   *   <li>Handles both {@code -value} and {@code (value)} negative notations.
+   *   <li>Strips all currency symbols and other non-numeric characters.
+   *   <li>Auto-detects the decimal separator: whichever of {@code .} or {@code ,} appears last and
+   *       is followed by exactly 2 digits is treated as the decimal separator; the other is a
+   *       grouping separator.
+   * </ul>
+   */
   @Override
   public Codec.ParsingResult<Long> parse(CharSequence input, int offset)
       throws Codec.DecodingException {
     String s = input.subSequence(offset, input.length()).toString().trim();
     try {
-      // Handle negative in parentheses: ($1.23) or -$1.23
       boolean negative = false;
+
+      // Handle parentheses (accounting negative format, e.g. "($1.23)").
       if (s.startsWith("(") && s.endsWith(")")) {
         negative = true;
-        s = s.substring(1, s.length() - 1);
+        s = s.substring(1, s.length() - 1).trim();
       }
+      // Handle leading '-'.
       if (s.startsWith("-")) {
         negative = true;
-        s = s.substring(1);
+        s = s.substring(1).trim();
       }
-      // Strip currency symbol and commas.
-      s = s.replace("$", "").replace(",", "");
-      // Parse as decimal and convert to cents.
-      int dotIndex = s.indexOf('.');
-      long value;
-      if (dotIndex < 0) {
-        value = Long.parseLong(s) * 100;
+
+      // Strip everything except digits, '.' and ','.
+      s = s.replaceAll("[^0-9.,]", "");
+
+      long dollars;
+      long cents;
+
+      int lastDot = s.lastIndexOf('.');
+      int lastComma = s.lastIndexOf(',');
+      int lastSep = Math.max(lastDot, lastComma);
+
+      if (lastSep >= 0 && (s.length() - lastSep - 1) == 2) {
+        // The last separator is followed by exactly 2 digits → it is the decimal separator.
+        char grpSep = (s.charAt(lastSep) == '.') ? ',' : '.';
+        String intPart = s.substring(0, lastSep).replace(String.valueOf(grpSep), "");
+        String fracPart = s.substring(lastSep + 1);
+        dollars = intPart.isEmpty() ? 0L : Long.parseLong(intPart);
+        cents = Long.parseLong(fracPart);
       } else {
-        String intPart = s.substring(0, dotIndex);
-        String fracPart = s.substring(dotIndex + 1);
-        // Pad or truncate to 2 decimal places.
-        if (fracPart.length() == 1) {
-          fracPart = fracPart + "0";
-        } else if (fracPart.length() > 2) {
-          fracPart = fracPart.substring(0, 2);
-        }
-        value = Long.parseLong(intPart) * 100 + Long.parseLong(fracPart);
+        // No recognisable decimal separator — treat the whole string as integer dollars.
+        String digits = s.replaceAll("[.,]", "");
+        dollars = digits.isEmpty() ? 0L : Long.parseLong(digits);
+        cents = 0L;
       }
+
+      long value = dollars * 100L + cents;
       if (negative) {
         value = -value;
       }
