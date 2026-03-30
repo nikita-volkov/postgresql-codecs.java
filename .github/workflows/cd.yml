@@ -35,3 +35,18 @@ jobs:
         run: mvn --batch-mode deploy -DskipTests
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Commit the version update
+        id: commit
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: Set package version to ${{ inputs.version }}
+          file_pattern: pom.xml
+
+      - name: Create release tag
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ github.token }}
+          custom_tag: ${{ inputs.version }}
+          tag_prefix: v
+          commit_sha: ${{ steps.commit.outputs.commit_hash }}
