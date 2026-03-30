@@ -73,15 +73,9 @@ final class BitCodec implements Codec<Bit> {
 
   @Override
   public Bit random(Random r, int size) {
-    int len = size == 0 ? 1 : r.nextInt(1, size + 1);
-    int numBytes = (len + 7) / 8;
-    byte[] data = new byte[numBytes];
-    r.nextBytes(data);
-    // Zero out padding bits in the last byte
-    int padding = numBytes * 8 - len;
-    if (padding > 0) {
-      data[numBytes - 1] &= (byte) (0xFF << padding);
-    }
-    return new Bit(len, data);
+    // Unqualified "bit" in PostgreSQL means bit(1). Generate only 1-bit values so that
+    // the cast "SELECT $1::bit" does not truncate the value.
+    byte val = r.nextBoolean() ? (byte) 0x80 : (byte) 0x00;
+    return new Bit(1, new byte[] {val});
   }
 }
