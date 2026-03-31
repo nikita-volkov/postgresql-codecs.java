@@ -25,6 +25,31 @@ public sealed interface Cidr permits Cidr.V4, Cidr.V6 {
    * @param netmask Network mask length in the range 0–32.
    */
   record V4(int address, byte netmask) implements Cidr {
+
+    /**
+     * Canonical constructor that enforces the documented invariants:
+     *
+     * <ul>
+     *   <li>{@code netmask} must be in the range 0–32 (inclusive)</li>
+     *   <li>all host bits of {@code address} beyond the netmask must be zero</li>
+     * </ul>
+     *
+     * @throws IllegalArgumentException if the arguments do not satisfy the invariants
+     */
+    public V4 {
+      int nm = netmask & 0xFF; // treat as unsigned
+      if (nm < 0 || nm > 32) {
+        throw new IllegalArgumentException("Invalid IPv4 CIDR netmask length: " + nm);
+      }
+      if (nm > 0) {
+        // Construct a mask with the top nm bits set (network bits).
+        int maskBits = -1 << (32 - nm);
+        if ((address & maskBits) != address) {
+          throw new IllegalArgumentException(
+              "IPv4 CIDR address has non-zero host bits for netmask /" + nm);
+        }
+      }
+    }
     @Override
     public void write(StringBuilder sb) {
       sb.append((address >>> 24) & 0xFF);
