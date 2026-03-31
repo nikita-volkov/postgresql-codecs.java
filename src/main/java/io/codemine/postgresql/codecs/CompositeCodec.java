@@ -16,7 +16,7 @@ import java.util.function.Function;
  * <pre>
  * int32  field_count
  * [for each field]:
- *   int32  field_oid    (OID of the field; 0 for unknown/user-defined)
+ *   int32  field_oid    (OID of the field type; 0 if not statically known)
  *   int32  field_length (-1 for NULL)
  *   byte[] field_data   (only present when field_length != -1)
  * </pre>
@@ -284,7 +284,7 @@ public final class CompositeCodec<Z> implements Codec<Z> {
    * <pre>
    * int32  field_count
    * [for each field]:
-   *   int32  field_oid    (0 for unknown OIDs)
+   *   int32  field_oid    (OID of the field type; 0 if not statically known)
    *   int32  field_length (-1 for NULL)
    *   byte[] field_data
    * </pre>
@@ -296,7 +296,7 @@ public final class CompositeCodec<Z> implements Codec<Z> {
     for (var f : fields) {
       var field = (Field<Z, Object>) f;
       Object fieldValue = field.accessor.apply(value);
-      writeInt32(out, field.codec.scalarOid());
+      writeInt32(out, field.codec.oid());
       if (fieldValue == null) {
         writeInt32(out, -1);
       } else {
@@ -333,12 +333,24 @@ public final class CompositeCodec<Z> implements Codec<Z> {
 
     Object fn = constructor;
     for (var f : fields) {
-      buf.getInt(); // OID — informational, not validated
+      var field = (Field<Z, Object>) f;
+      int fieldOid = buf.getInt();
+      int expectedFieldOid = field.codec.oid();
+      if (expectedFieldOid != 0 && fieldOid != expectedFieldOid) {
+        throw new Codec.DecodingException(
+            "Unexpected field OID in composite binary decode for field '"
+                + field.name
+                + "' of "
+                + pgName
+                + ": expected "
+                + expectedFieldOid
+                + ", got "
+                + fieldOid);
+      }
       int fieldLen = buf.getInt();
       if (fieldLen == -1) {
         fn = ((Function<Object, Object>) fn).apply(null);
       } else {
-        var field = (Field<Z, Object>) f;
         Object fieldValue = ((Codec<Object>) field.codec).decodeInBinary(buf, fieldLen);
         fn = ((Function<Object, Object>) fn).apply(fieldValue);
       }

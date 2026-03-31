@@ -1,7 +1,12 @@
 package io.codemine.postgresql.codecs;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import java.nio.ByteBuffer;
 import java.util.List;
 import net.jqwik.api.Group;
+import org.junit.jupiter.api.Test;
 
 /**
  * Unit tests for {@link CompositeCodec}, covering text and binary round-trips for four composite
@@ -68,6 +73,48 @@ class CompositeCodecTest {
           new CompositeCodec.Field<>("label", AnnotatedSegment::label, Codec.TEXT),
           new CompositeCodec.Field<>("seg", AnnotatedSegment::seg, SEGMENT_CODEC),
           new CompositeCodec.Field<>("tags", AnnotatedSegment::tags, Codec.TEXT.inDim()));
+
+  @Test
+  void binaryDecodeRejectsUnexpectedScalarFieldOid() {
+    Point value = new Point(1, 2);
+    byte[] encoded = POINT_CODEC.encodeInBinaryAsByteArray(value);
+    ByteBuffer.wrap(encoded).putInt(Integer.BYTES, Codec.TEXT.oid());
+
+    var error =
+        assertThrows(
+            Codec.DecodingException.class,
+            () -> POINT_CODEC.decodeInBinary(ByteBuffer.wrap(encoded), encoded.length));
+
+    assertEquals(
+        "Unexpected field OID in composite binary decode for field 'x' of test_pt: expected "
+            + Codec.INT4.oid()
+            + ", got "
+            + Codec.TEXT.oid(),
+        error.getMessage());
+  }
+
+  @Test
+  void binaryEncodeUsesArrayOidForArrayField() {
+    TaggedData value = new TaggedData("tag", List.of("alpha"));
+    ByteBuffer buf = ByteBuffer.wrap(TAGGED_DATA_CODEC.encodeInBinaryAsByteArray(value));
+
+    assertEquals(2, buf.getInt());
+    buf.getInt();
+    int firstFieldLength = buf.getInt();
+    buf.position(buf.position() + firstFieldLength);
+
+    assertEquals(Codec.TEXT.inDim().oid(), buf.getInt());
+  }
+
+  @Test
+  void binaryDecodeAcceptsNonzeroFieldOidWhenTypeOidIsUnknown() throws Exception {
+    Segment value = new Segment(new Point(1, 2), new Point(3, 4));
+    byte[] encoded = SEGMENT_CODEC.encodeInBinaryAsByteArray(value);
+    int serverAssignedOid = 12_345;
+    ByteBuffer.wrap(encoded).putInt(Integer.BYTES, serverAssignedOid);
+
+    assertEquals(value, SEGMENT_CODEC.decodeInBinary(ByteBuffer.wrap(encoded), encoded.length));
+  }
 
   // -----------------------------------------------------------------------
   // Test groups — each extends CodecTestBase to get the full binary+text
