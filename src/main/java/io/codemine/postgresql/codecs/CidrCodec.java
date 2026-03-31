@@ -4,11 +4,8 @@ import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.Random;
 
-/**
- * Codec for PostgreSQL {@code cidr} values. Reuses the {@link Inet} type but with different name,
- * OIDs, and binary is_cidr flag.
- */
-final class CidrCodec implements Codec<Inet> {
+/** Codec for PostgreSQL {@code cidr} values. Uses the dedicated {@link Cidr} type. */
+final class CidrCodec implements Codec<Cidr> {
 
   @Override
   public String name() {
@@ -26,74 +23,28 @@ final class CidrCodec implements Codec<Inet> {
   }
 
   @Override
-  public void write(StringBuilder sb, Inet value) {
-    // CIDR always shows the netmask, unlike inet which omits /32 and /128
-    switch (value) {
-      case Inet.V4 v4 -> {
-        int addr = v4.address();
-        sb.append((addr >>> 24) & 0xFF)
-            .append('.')
-            .append((addr >>> 16) & 0xFF)
-            .append('.')
-            .append((addr >>> 8) & 0xFF)
-            .append('.')
-            .append(addr & 0xFF)
-            .append('/')
-            .append(v4.netmask() & 0xff);
-      }
-      case Inet.V6 v6 -> {
-        // Reuse the Inet.V6 write method but ensure netmask is always shown
-        v6.write(sb);
-        // If write didn't include the mask (because it's 128), append it
-        if ((v6.netmask() & 0xff) == 128) {
-          sb.append("/128");
-        }
-      }
-    }
+  public void write(StringBuilder sb, Cidr value) {
+    value.write(sb);
   }
 
   @Override
-  public Codec.ParsingResult<Inet> parse(CharSequence input, int offset)
+  public Codec.ParsingResult<Cidr> parse(CharSequence input, int offset)
       throws Codec.DecodingException {
     String s = input.subSequence(offset, input.length()).toString().trim();
     try {
-      return new Codec.ParsingResult<>(InetCodec.parseInet(s), input.length());
+      return new Codec.ParsingResult<>(parseCidr(s), input.length());
     } catch (Exception e) {
       throw new Codec.DecodingException(input, offset, "Invalid cidr: " + s);
     }
   }
 
   @Override
-  public void encodeInBinary(Inet value, ByteArrayOutputStream out) {
-    switch (value) {
-      case Inet.V4 v4 -> {
-        out.write(2); // IPv4 address family
-        out.write(v4.netmask());
-        out.write(1); // is_cidr = 1
-        out.write(4); // address length
-        int addr = v4.address();
-        out.write((addr >>> 24) & 0xFF);
-        out.write((addr >>> 16) & 0xFF);
-        out.write((addr >>> 8) & 0xFF);
-        out.write(addr & 0xFF);
-      }
-      case Inet.V6 v6 -> {
-        out.write(3); // IPv6 address family
-        out.write(v6.netmask());
-        out.write(1); // is_cidr = 1
-        out.write(16); // address length
-        for (int w : new int[] {v6.w1(), v6.w2(), v6.w3(), v6.w4()}) {
-          out.write((w >>> 24) & 0xFF);
-          out.write((w >>> 16) & 0xFF);
-          out.write((w >>> 8) & 0xFF);
-          out.write(w & 0xFF);
-        }
-      }
-    }
+  public void encodeInBinary(Cidr value, ByteArrayOutputStream out) {
+    value.encodeInBinary(out);
   }
 
   @Override
-  public Inet decodeInBinary(ByteBuffer buf, int length) throws Codec.DecodingException {
+  public Cidr decodeInBinary(ByteBuffer buf, int length) throws Codec.DecodingException {
     if (length < 4) {
       throw new Codec.DecodingException("Binary cidr too short: " + length);
     }
@@ -106,20 +57,20 @@ final class CidrCodec implements Codec<Inet> {
         if (addrLen != 4 || length != 8) {
           throw new Codec.DecodingException("Binary IPv4 cidr length mismatch");
         }
-        yield new Inet.V4(buf.getInt(), netmask);
+        yield new Cidr.V4(buf.getInt(), netmask);
       }
       case 3 -> {
         if (addrLen != 16 || length != 20) {
           throw new Codec.DecodingException("Binary IPv6 cidr length mismatch");
         }
-        yield new Inet.V6(buf.getInt(), buf.getInt(), buf.getInt(), buf.getInt(), netmask);
+        yield new Cidr.V6(buf.getInt(), buf.getInt(), buf.getInt(), buf.getInt(), netmask);
       }
       default -> throw new Codec.DecodingException("Unknown cidr address family: " + af);
     };
   }
 
   @Override
-  public Inet random(Random r, int size) {
+  public Cidr random(Random r, int size) {
     if (r.nextBoolean()) {
       byte mask = (byte) r.nextInt(0, 33);
       int addr = r.nextInt();
@@ -130,7 +81,7 @@ final class CidrCodec implements Codec<Inet> {
       } else if (maskBits < 32) {
         addr &= (-1 << (32 - maskBits));
       }
-      return new Inet.V4(addr, mask);
+      return new Cidr.V4(addr, mask);
     } else {
       byte mask = (byte) r.nextInt(0, 129);
       int[] words = {r.nextInt(), r.nextInt(), r.nextInt(), r.nextInt()};
@@ -149,7 +100,31 @@ final class CidrCodec implements Codec<Inet> {
           words[i] = (bitsToKeep == 0) ? 0 : (words[i] & (-1 << (32 - bitsToKeep)));
         }
       }
-      return new Inet.V6(words[0], words[1], words[2], words[3], mask);
+      return new Cidr.V6(words[0], words[1], words[2], words[3], mask);
+    }
+  }
+
+  /** Parses a CIDR text value into a {@link Cidr}. */
+  static Cidr parseCidr(String s) throws Exception {
+    int slash = s.indexOf('/');
+    if (slash < 0) {
+      throw new Exception("cidr value must include a netmask: " + s);
+    }
+    String addrPart = s.substring(0, slash);
+    int netmask = Integer.parseInt(s.substring(slash + 1));
+
+    if (addrPart.contains(":")) {
+      // IPv6
+      int[] groups = InetCodec.parseIpV6Groups(addrPart);
+      int w1 = (groups[0] << 16) | groups[1];
+      int w2 = (groups[2] << 16) | groups[3];
+      int w3 = (groups[4] << 16) | groups[5];
+      int w4 = (groups[6] << 16) | groups[7];
+      return new Cidr.V6(w1, w2, w3, w4, (byte) netmask);
+    } else {
+      // IPv4
+      int addr = InetCodec.parseIpV4(addrPart);
+      return new Cidr.V4(addr, (byte) netmask);
     }
   }
 }

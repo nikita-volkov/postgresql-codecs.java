@@ -70,7 +70,7 @@ Add the GitHub Packages repository to your `pom.xml`:
 | `timestamptz` | `Instant` | `Codec.TIMESTAMPTZ` |
 | `interval` | `Interval` | `Codec.INTERVAL` |
 | `inet` | `Inet` | `Codec.INET` |
-| `cidr` | `Inet` | `Codec.CIDR` |
+| `cidr` | `Cidr` | `Codec.CIDR` |
 | `macaddr` | `Macaddr` | `Codec.MACADDR` |
 | `macaddr8` | `Macaddr8` | `Codec.MACADDR8` |
 | `point` | `Point` | `Codec.POINT` |
@@ -96,9 +96,73 @@ Custom types can be mapped without losing binary support:
 Codec<MyId> myIdCodec = Codec.INT4.map(MyId::new, MyId::value);
 ```
 
+### Composite type example
+
+Given a PostgreSQL type `CREATE TYPE inventory_item AS (name text, qty int4)`:
+
+```java
+record InventoryItem(String name, int qty) {}
+
+Codec<InventoryItem> itemCodec = new CompositeCodec<>(
+    "",                                               // schema (empty = default search path)
+    "inventory_item",                                 // PostgreSQL type name
+    (String name) -> (Integer qty) -> new InventoryItem(name, qty),
+    new CompositeCodec.Field<>("name", InventoryItem::name, Codec.TEXT),
+    new CompositeCodec.Field<>("qty",  InventoryItem::qty,  Codec.INT4));
+```
+
+Use it exactly like any other codec. Array support is automatic:
+
+```java
+Codec<List<InventoryItem>> itemArrayCodec = itemCodec.inDim();
+```
+
+### Enum type example
+
+Given a PostgreSQL type `CREATE TYPE status AS ENUM ('pending', 'active', 'closed')`:
+
+```java
+enum Status { PENDING, ACTIVE, CLOSED }
+
+Codec<Status> statusCodec = new EnumCodec<>(
+    "",        // schema
+    "status",  // PostgreSQL type name
+    Map.of(
+        Status.PENDING, "pending",
+        Status.ACTIVE,  "active",
+        Status.CLOSED,  "closed"));
+```
+
+### Domain type example
+
+Given `CREATE DOMAIN email AS text CHECK (VALUE ~ '^[^@]+@[^@]+$')`:
+
+```java
+Codec<String> emailCodec = Codec.TEXT.withType("", "email");
+```
+
+The resulting codec encodes and decodes `String` values exactly like `Codec.TEXT`, but reports
+`"email"` as its type name so that the driver sends the correct type annotation. If you look up the
+domain's OIDs at startup you can supply them for full binary-format support:
+
+```java
+// Look up OIDs at application startup, e.g.:
+int scalarOid;
+int arrayOid;
+try (var ps = conn.prepareStatement(
+        "SELECT oid::int, typarray::int FROM pg_type WHERE typname = 'email'");
+     var rs = ps.executeQuery()) {
+    rs.next();
+    scalarOid = rs.getInt(1);
+    arrayOid  = rs.getInt(2);
+}
+
+Codec<String> emailCodec = Codec.TEXT.withType("", "email", scalarOid, arrayOid);
+```
+
 ## Usage with JDBC (pgjdbc)
 
-Use `Codec.write` to encode a value as a PostgreSQL text literal and wrap it in a `PGobject`. Use `Codec.parse` to decode the text column returned by the driver.
+Use `Codec.encodeToText` to encode a value as a PostgreSQL text literal and wrap it in a `PGobject`. Use `Codec.decodeFromText` to decode the text column returned by the driver.
 
 ```java
 import io.codemine.postgresql.codecs.Codec;
@@ -109,9 +173,7 @@ Codec<Integer> codec = Codec.INT4;
 
 PGobject obj = new PGobject();
 obj.setType(codec.typeSig());          // e.g. "int4"
-StringBuilder sb = new StringBuilder();
-codec.write(sb, 42);
-obj.setValue(sb.toString());
+obj.setValue(codec.encodeToText(42));
 
 PreparedStatement ps = connection.prepareStatement("INSERT INTO t (col) VALUES (?)");
 ps.setObject(1, obj);
@@ -122,7 +184,7 @@ PreparedStatement q = connection.prepareStatement("SELECT col FROM t WHERE id = 
 q.setInt(1, 1);
 ResultSet rs = q.executeQuery();
 if (rs.next()) {
-    Integer value = codec.parse(rs.getString("col"), 0).value;
+    Integer value = codec.decodeFromText(rs.getString("col"));
 }
 ```
 
@@ -133,9 +195,7 @@ Codec<List<Integer>> arrayCodec = Codec.INT4.inDim();
 
 PGobject arr = new PGobject();
 arr.setType(arrayCodec.typeSig());     // "int4[]"
-StringBuilder sb = new StringBuilder();
-arrayCodec.write(sb, List.of(1, 2, 3));
-arr.setValue(sb.toString());
+arr.setValue(arrayCodec.encodeToText(List.of(1, 2, 3)));
 ```
 
 ## Usage with R2DBC (r2dbc-postgresql)

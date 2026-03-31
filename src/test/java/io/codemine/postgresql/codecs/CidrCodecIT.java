@@ -1,7 +1,7 @@
 package io.codemine.postgresql.codecs;
 
-public class CidrCodecIT extends CodecITBase<Inet> {
+public class CidrCodecIT extends CodecITBase<Cidr> {
   public CidrCodecIT() {
-    super(Codec.CIDR, Inet.class);
+    super(Codec.CIDR, Cidr.class);
   }
 }

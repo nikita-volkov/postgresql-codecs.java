@@ -52,7 +52,7 @@ public class BinaryInTextOutR2dbcCodec<A>
   @Override
   @SuppressWarnings("unchecked")
   public EncodedParameter encode(Object value, int dataType) {
-    byte[] bytes = codec.encodeInBinaryAsByteArray((A) value);
+    byte[] bytes = codec.encodeToBytes((A) value);
     return new EncodedParameter(
         Format.FORMAT_BINARY, dataType, Mono.just(Unpooled.wrappedBuffer(bytes)));
   }

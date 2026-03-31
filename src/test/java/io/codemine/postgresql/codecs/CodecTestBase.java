@@ -42,7 +42,7 @@ abstract class CodecTestBase<A> {
 
   @Property(tries = 100)
   void decodesEncodedInBinary(@ForAll("values") A value) throws Exception {
-    byte[] encoded = codec.encodeInBinaryAsByteArray(value);
+    byte[] encoded = codec.encodeToBytes(value);
     A decoded = codec.decodeInBinary(ByteBuffer.wrap(encoded), encoded.length);
     assertEquals(value, decoded);
   }
@@ -58,7 +58,7 @@ abstract class CodecTestBase<A> {
 
   @Property(tries = 100)
   void decodesArrayEncodedInBinary(@ForAll("arrayValues") List<A> value) throws Exception {
-    byte[] encoded = arrayCodec.encodeInBinaryAsByteArray(value);
+    byte[] encoded = arrayCodec.encodeToBytes(value);
     List<A> decoded = arrayCodec.decodeInBinary(ByteBuffer.wrap(encoded), encoded.length);
     assertEquals(value, decoded);
   }
@@ -75,7 +75,7 @@ abstract class CodecTestBase<A> {
   @Property(tries = 100)
   void decodesArrayArrayEncodedInBinary(@ForAll("arrayArrayValues") List<List<A>> value)
       throws Exception {
-    byte[] encoded = arrayArrayCodec.encodeInBinaryAsByteArray(value);
+    byte[] encoded = arrayArrayCodec.encodeToBytes(value);
     List<List<A>> decoded =
         arrayArrayCodec.decodeInBinary(ByteBuffer.wrap(encoded), encoded.length);
     assertEquals(value, decoded);
