@@ -18,9 +18,10 @@ import java.util.function.Function;
  *       methods are also used when encoding composite and array fields inside a composite/array
  *       literal.
  *   <li><b>Binary</b> — the PostgreSQL binary wire format. Low-level: {@link #encodeInBinary} and
- *       {@link #decodeInBinary}. Convenience: {@link #encodeToBytes}, {@link #encodeToByteBuffer},
- *       and {@link #decodeFromBytes}. Binary encoding is compact, unambiguous and required when
- *       assembling composite or array values in binary protocol mode.
+ *       {@link #decodeInBinary}. Convenience: {@link #encodeInBinaryToBytes}, {@link
+ *       #encodeInBinaryToByteBuffer}, and {@link #decodeInBinaryFromBytes}. Binary encoding is
+ *       compact, unambiguous and required when assembling composite or array values in binary
+ *       protocol mode.
  * </ul>
  *
  * @param <A> the type of the value
@@ -207,7 +208,7 @@ public interface Codec<A> {
    * Convenience overload that encodes the value into a freshly-allocated byte array and returns it.
    * Delegates to {@link #encodeInBinary(Object, ByteArrayOutputStream)}.
    */
-  default byte[] encodeToBytes(A value) {
+  default byte[] encodeInBinaryToBytes(A value) {
     var out = new ByteArrayOutputStream();
     encodeInBinary(value, out);
     return out.toByteArray();
@@ -215,10 +216,10 @@ public interface Codec<A> {
 
   /**
    * Convenience overload that encodes the value into a {@link ByteBuffer}. Delegates to {@link
-   * #encodeToBytes(Object)}.
+   * #encodeInBinaryToBytes(Object)}.
    */
-  default ByteBuffer encodeToByteBuffer(A value) {
-    return ByteBuffer.wrap(encodeToBytes(value));
+  default ByteBuffer encodeInBinaryToByteBuffer(A value) {
+    return ByteBuffer.wrap(encodeInBinaryToBytes(value));
   }
 
   /**
@@ -244,7 +245,7 @@ public interface Codec<A> {
    * @throws DecodingException if the binary data is malformed
    * @throws UnsupportedOperationException if binary decoding is not implemented for this type
    */
-  default A decodeFromBytes(byte[] bytes) throws DecodingException {
+  default A decodeInBinaryFromBytes(byte[] bytes) throws DecodingException {
     return decodeInBinary(ByteBuffer.wrap(bytes), bytes.length);
   }
 

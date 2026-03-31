@@ -77,7 +77,7 @@ class CompositeCodecTest {
   @Test
   void binaryDecodeRejectsUnexpectedScalarFieldOid() {
     Point value = new Point(1, 2);
-    byte[] encoded = POINT_CODEC.encodeToBytes(value);
+    byte[] encoded = POINT_CODEC.encodeInBinaryToBytes(value);
     ByteBuffer.wrap(encoded).putInt(Integer.BYTES, Codec.TEXT.oid());
 
     var error =
@@ -96,7 +96,7 @@ class CompositeCodecTest {
   @Test
   void binaryEncodeUsesArrayOidForArrayField() {
     TaggedData value = new TaggedData("tag", List.of("alpha"));
-    ByteBuffer buf = ByteBuffer.wrap(TAGGED_DATA_CODEC.encodeToBytes(value));
+    ByteBuffer buf = ByteBuffer.wrap(TAGGED_DATA_CODEC.encodeInBinaryToBytes(value));
 
     assertEquals(2, buf.getInt());
     buf.getInt();
@@ -109,7 +109,7 @@ class CompositeCodecTest {
   @Test
   void binaryDecodeAcceptsNonzeroFieldOidWhenTypeOidIsUnknown() throws Exception {
     Segment value = new Segment(new Point(1, 2), new Point(3, 4));
-    byte[] encoded = SEGMENT_CODEC.encodeToBytes(value);
+    byte[] encoded = SEGMENT_CODEC.encodeInBinaryToBytes(value);
     int serverAssignedOid = 12_345;
     ByteBuffer.wrap(encoded).putInt(Integer.BYTES, serverAssignedOid);
 
