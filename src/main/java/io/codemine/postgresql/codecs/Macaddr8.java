@@ -11,12 +11,11 @@ public record Macaddr8(byte b1, byte b2, byte b3, byte b4, byte b5, byte b6, byt
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder(23);
-    write(sb);
+    appendInTextTo(sb);
     return sb.toString();
   }
 
-  /** Writes the MAC address to the given {@link StringBuilder} in the SQL format. */
-  public void write(StringBuilder sb) {
+  void appendInTextTo(StringBuilder sb) {
     appendHexByte(sb, b1);
     sb.append(':');
     appendHexByte(sb, b2);

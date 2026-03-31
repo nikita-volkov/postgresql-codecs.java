@@ -30,16 +30,7 @@ final class BoxCodec implements Codec<Box> {
 
   @Override
   public void encodeInText(StringBuilder sb, Box value) {
-    // Format: (x1,y1),(x2,y2) — no surrounding brackets
-    sb.append('(');
-    sb.append(Double.toString(value.x1()));
-    sb.append(',');
-    sb.append(Double.toString(value.y1()));
-    sb.append("),(");
-    sb.append(Double.toString(value.x2()));
-    sb.append(',');
-    sb.append(Double.toString(value.y2()));
-    sb.append(')');
+    value.appendInTextTo(sb);
   }
 
   @Override

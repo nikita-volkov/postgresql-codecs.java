@@ -26,19 +26,7 @@ final class PolygonCodec implements Codec<Polygon> {
 
   @Override
   public void encodeInText(StringBuilder sb, Polygon value) {
-    sb.append('(');
-    for (int i = 0; i < value.points().size(); i++) {
-      if (i > 0) {
-        sb.append(',');
-      }
-      Point p = value.points().get(i);
-      sb.append('(');
-      sb.append(Double.toString(p.x()));
-      sb.append(',');
-      sb.append(Double.toString(p.y()));
-      sb.append(')');
-    }
-    sb.append(')');
+    value.appendInTextTo(sb);
   }
 
   @Override

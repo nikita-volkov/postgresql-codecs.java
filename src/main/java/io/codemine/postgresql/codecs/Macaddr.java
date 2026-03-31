@@ -11,29 +11,28 @@ public record Macaddr(byte b1, byte b2, byte b3, byte b4, byte b5, byte b6) {
 
   @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder(17);
-    write(builder);
-    return builder.toString();
+    StringBuilder sb = new StringBuilder(17);
+    appendInTextTo(sb);
+    return sb.toString();
   }
 
-  /** Writes the MAC address to the given {@link StringBuilder} in the SQL format. */
-  public void write(StringBuilder builder) {
-    appendHexByte(builder, b1);
-    builder.append(':');
-    appendHexByte(builder, b2);
-    builder.append(':');
-    appendHexByte(builder, b3);
-    builder.append(':');
-    appendHexByte(builder, b4);
-    builder.append(':');
-    appendHexByte(builder, b5);
-    builder.append(':');
-    appendHexByte(builder, b6);
+  void appendInTextTo(StringBuilder sb) {
+    appendHexByte(sb, b1);
+    sb.append(':');
+    appendHexByte(sb, b2);
+    sb.append(':');
+    appendHexByte(sb, b3);
+    sb.append(':');
+    appendHexByte(sb, b4);
+    sb.append(':');
+    appendHexByte(sb, b5);
+    sb.append(':');
+    appendHexByte(sb, b6);
   }
 
-  private static void appendHexByte(StringBuilder builder, byte value) {
+  private static void appendHexByte(StringBuilder sb, byte value) {
     int unsignedValue = value & 0xff;
-    builder.append(HEX_DIGITS[unsignedValue >>> 4]);
-    builder.append(HEX_DIGITS[unsignedValue & 0x0f]);
+    sb.append(HEX_DIGITS[unsignedValue >>> 4]);
+    sb.append(HEX_DIGITS[unsignedValue & 0x0f]);
   }
 }

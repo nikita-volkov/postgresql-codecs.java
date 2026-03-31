@@ -24,7 +24,7 @@ final class CidrCodec implements Codec<Cidr> {
 
   @Override
   public void encodeInText(StringBuilder sb, Cidr value) {
-    value.write(sb);
+    value.appendInTextTo(sb);
   }
 
   @Override

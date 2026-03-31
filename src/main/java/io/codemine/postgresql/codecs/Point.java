@@ -5,11 +5,15 @@ public record Point(double x, double y) {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder();
-    sb.append('(');
-    sb.append(Double.toString(x));
-    sb.append(',');
-    sb.append(Double.toString(y));
-    sb.append(')');
+    appendInTextTo(sb);
     return sb.toString();
+  }
+
+  void appendInTextTo(StringBuilder sb) {
+    sb.append('(');
+    sb.append(x);
+    sb.append(',');
+    sb.append(y);
+    sb.append(')');
   }
 }

@@ -17,4 +17,23 @@ public record Box(double x1, double y1, double x2, double y2) {
   public static Box of(double x1, double y1, double x2, double y2) {
     return new Box(Math.max(x1, x2), Math.max(y1, y2), Math.min(x1, x2), Math.min(y1, y2));
   }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    appendInTextTo(sb);
+    return sb.toString();
+  }
+
+  void appendInTextTo(StringBuilder sb) {
+    sb.append('(');
+    sb.append(x1);
+    sb.append(',');
+    sb.append(y1);
+    sb.append("),(");
+    sb.append(x2);
+    sb.append(',');
+    sb.append(y2);
+    sb.append(')');
+  }
 }

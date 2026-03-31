@@ -13,7 +13,7 @@ import java.io.ByteArrayOutputStream;
 public sealed interface Inet permits Inet.V4, Inet.V6 {
 
   /** Appends the PostgreSQL text representation of this address to {@code sb}. */
-  void write(StringBuilder sb);
+  void appendInTextTo(StringBuilder sb);
 
   /** Encodes this address in PostgreSQL binary wire format into {@code out}. */
   void encodeInBinary(ByteArrayOutputStream out);
@@ -26,7 +26,7 @@ public sealed interface Inet permits Inet.V4, Inet.V6 {
    */
   record V4(int address, byte netmask) implements Inet {
     @Override
-    public void write(StringBuilder sb) {
+    public void appendInTextTo(StringBuilder sb) {
       sb.append((address >>> 24) & 0xFF);
       sb.append('.');
       sb.append((address >>> 16) & 0xFF);
@@ -54,7 +54,7 @@ public sealed interface Inet permits Inet.V4, Inet.V6 {
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder();
-      write(sb);
+      appendInTextTo(sb);
       return sb.toString();
     }
   }
@@ -70,7 +70,7 @@ public sealed interface Inet permits Inet.V4, Inet.V6 {
    */
   record V6(int w1, int w2, int w3, int w4, byte netmask) implements Inet {
     @Override
-    public void write(StringBuilder sb) {
+    public void appendInTextTo(StringBuilder sb) {
       // Formats a 128-bit IPv6 address (stored as four 32-bit words) as compressed text per
       // RFC 5952, e.g. {@code ::1} instead of {@code 0:0:0:0:0:0:0:1}.
 
@@ -153,7 +153,7 @@ public sealed interface Inet permits Inet.V4, Inet.V6 {
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder();
-      write(sb);
+      appendInTextTo(sb);
       return sb.toString();
     }
   }

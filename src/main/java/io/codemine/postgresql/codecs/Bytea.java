@@ -6,6 +6,8 @@ import java.util.HexFormat;
 /** A wrapper around a byte array representing a PostgreSQL {@code bytea} value. */
 public record Bytea(byte[] bytes) {
 
+  private static final HexFormat HEX = HexFormat.of();
+
   @Override
   public boolean equals(Object o) {
     return o instanceof Bytea b && Arrays.equals(bytes, b.bytes);
@@ -18,6 +20,13 @@ public record Bytea(byte[] bytes) {
 
   @Override
   public String toString() {
-    return "\\x" + HexFormat.of().formatHex(bytes);
+    StringBuilder sb = new StringBuilder();
+    appendInTextTo(sb);
+    return sb.toString();
+  }
+
+  void appendInTextTo(StringBuilder sb) {
+    sb.append("\\x");
+    sb.append(HEX.formatHex(bytes));
   }
 }

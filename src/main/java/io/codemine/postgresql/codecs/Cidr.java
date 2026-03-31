@@ -13,7 +13,7 @@ import java.io.ByteArrayOutputStream;
 public sealed interface Cidr permits Cidr.V4, Cidr.V6 {
 
   /** Appends the PostgreSQL text representation of this CIDR block to {@code sb}. */
-  void write(StringBuilder sb);
+  void appendInTextTo(StringBuilder sb);
 
   /** Encodes this CIDR block in PostgreSQL binary wire format into {@code out}. */
   void encodeInBinary(ByteArrayOutputStream out);
@@ -52,7 +52,7 @@ public sealed interface Cidr permits Cidr.V4, Cidr.V6 {
     }
 
     @Override
-    public void write(StringBuilder sb) {
+    public void appendInTextTo(StringBuilder sb) {
       sb.append((address >>> 24) & 0xFF);
       sb.append('.');
       sb.append((address >>> 16) & 0xFF);
@@ -78,7 +78,7 @@ public sealed interface Cidr permits Cidr.V4, Cidr.V6 {
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder();
-      write(sb);
+      appendInTextTo(sb);
       return sb.toString();
     }
   }
@@ -134,7 +134,7 @@ public sealed interface Cidr permits Cidr.V4, Cidr.V6 {
     }
 
     @Override
-    public void write(StringBuilder sb) {
+    public void appendInTextTo(StringBuilder sb) {
       // Formats a 128-bit IPv6 network address (stored as four 32-bit words) as compressed text
       // per RFC 5952, always including the prefix length.
 
@@ -215,7 +215,7 @@ public sealed interface Cidr permits Cidr.V4, Cidr.V6 {
     @Override
     public String toString() {
       StringBuilder sb = new StringBuilder();
-      write(sb);
+      appendInTextTo(sb);
       return sb.toString();
     }
   }

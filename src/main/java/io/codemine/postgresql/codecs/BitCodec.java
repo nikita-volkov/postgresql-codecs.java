@@ -24,7 +24,7 @@ final class BitCodec implements Codec<Bit> {
 
   @Override
   public void encodeInText(StringBuilder sb, Bit value) {
-    value.write(sb);
+    value.appendInTextTo(sb);
   }
 
   @Override

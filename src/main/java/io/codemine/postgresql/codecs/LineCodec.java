@@ -24,13 +24,7 @@ final class LineCodec implements Codec<Line> {
 
   @Override
   public void encodeInText(StringBuilder sb, Line value) {
-    sb.append('{');
-    sb.append(Double.toString(value.a()));
-    sb.append(',');
-    sb.append(Double.toString(value.b()));
-    sb.append(',');
-    sb.append(Double.toString(value.c()));
-    sb.append('}');
+    value.appendInTextTo(sb);
   }
 
   @Override

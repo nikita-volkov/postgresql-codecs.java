@@ -23,7 +23,7 @@ final class InetCodec implements Codec<Inet> {
 
   @Override
   public void encodeInText(StringBuilder sb, Inet value) {
-    value.write(sb);
+    value.appendInTextTo(sb);
   }
 
   @Override

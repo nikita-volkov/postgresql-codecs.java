@@ -24,38 +24,7 @@ final class IntervalCodec implements Codec<Interval> {
 
   @Override
   public void encodeInText(StringBuilder sb, Interval value) {
-    int months = value.month();
-    int years = months / 12;
-    int mons = months % 12;
-    int days = value.day();
-
-    boolean hasParts = false;
-
-    if (years != 0) {
-      sb.append(years).append(years == 1 ? " year" : " years");
-      hasParts = true;
-    }
-    if (mons != 0) {
-      if (hasParts) {
-        sb.append(' ');
-      }
-      sb.append(mons).append(mons == 1 ? " mon" : " mons");
-      hasParts = true;
-    }
-    if (days != 0) {
-      if (hasParts) {
-        sb.append(' ');
-      }
-      sb.append(days).append(days == 1 ? " day" : " days");
-      hasParts = true;
-    }
-    long time = value.time();
-    if (time != 0 || !hasParts) {
-      if (hasParts) {
-        sb.append(' ');
-      }
-      writeIntervalTime(sb, time);
-    }
+    value.appendInTextTo(sb);
   }
 
   @Override
@@ -111,31 +80,6 @@ final class IntervalCodec implements Codec<Interval> {
     int day = r.nextInt(2 * size + 1) - size;
     int month = r.nextInt(2 * size + 1) - size;
     return new Interval(time, day, month);
-  }
-
-  /** Writes the time component of an interval (may be negative). */
-  private static void writeIntervalTime(StringBuilder sb, long timeMicros) {
-    if (timeMicros < 0) {
-      sb.append('-');
-      timeMicros = -timeMicros;
-    }
-    long hours = timeMicros / 3_600_000_000L;
-    timeMicros %= 3_600_000_000L;
-
-    pad2(sb, hours);
-    sb.append(':');
-
-    long minutes = timeMicros / 60_000_000L;
-    timeMicros %= 60_000_000L;
-    pad2(sb, minutes);
-    sb.append(':');
-
-    long seconds = timeMicros / 1_000_000L;
-    long frac = timeMicros % 1_000_000L;
-    pad2(sb, seconds);
-    if (frac > 0) {
-      appendFraction(sb, frac);
-    }
   }
 
   /** Parses a PG interval output string. */
@@ -202,30 +146,5 @@ final class IntervalCodec implements Codec<Interval> {
     long seconds = Long.parseLong(secPart);
     long total = hours * 3_600_000_000L + minutes * 60_000_000L + seconds * 1_000_000L;
     return negative ? -total : total;
-  }
-
-  /** Appends a zero-padded 2-digit integer (hours may exceed 99 for large intervals). */
-  private static void pad2(StringBuilder sb, long v) {
-    if (v < 10) {
-      sb.append('0');
-    }
-    sb.append(v);
-  }
-
-  /** Appends fractional seconds (1-6 digits, trailing zeros stripped). */
-  private static void appendFraction(StringBuilder sb, long micros) {
-    sb.append('.');
-    int val = (int) micros;
-    sb.append((char) ('0' + val / 100000));
-    sb.append((char) ('0' + val / 10000 % 10));
-    sb.append((char) ('0' + val / 1000 % 10));
-    sb.append((char) ('0' + val / 100 % 10));
-    sb.append((char) ('0' + val / 10 % 10));
-    sb.append((char) ('0' + val % 10));
-    int len = sb.length();
-    while (sb.charAt(len - 1) == '0') {
-      len--;
-    }
-    sb.setLength(len);
   }
 }

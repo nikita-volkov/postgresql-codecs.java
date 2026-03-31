@@ -24,12 +24,11 @@ public record Bit(int length, byte[] data) {
   @Override
   public String toString() {
     StringBuilder sb = new StringBuilder(length);
-    write(sb);
+    appendInTextTo(sb);
     return sb.toString();
   }
 
-  /** Appends the bit string representation to the given builder. */
-  public void write(StringBuilder sb) {
+  void appendInTextTo(StringBuilder sb) {
     for (int i = 0; i < length; i++) {
       int byteIndex = i / 8;
       int bitIndex = 7 - (i % 8);

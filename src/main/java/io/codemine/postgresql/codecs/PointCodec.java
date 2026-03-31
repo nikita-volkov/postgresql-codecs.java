@@ -24,11 +24,7 @@ final class PointCodec implements Codec<Point> {
 
   @Override
   public void encodeInText(StringBuilder sb, Point value) {
-    sb.append('(');
-    sb.append(Double.toString(value.x()));
-    sb.append(',');
-    sb.append(Double.toString(value.y()));
-    sb.append(')');
+    value.appendInTextTo(sb);
   }
 
   @Override

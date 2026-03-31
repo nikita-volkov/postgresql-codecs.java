@@ -7,4 +7,22 @@ package io.codemine.postgresql.codecs;
  * @param y the y-coordinate of the center
  * @param r the radius (non-negative)
  */
-public record Circle(double x, double y, double r) {}
+public record Circle(double x, double y, double r) {
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    appendInTextTo(sb);
+    return sb.toString();
+  }
+
+  void appendInTextTo(StringBuilder sb) {
+    sb.append("<(");
+    sb.append(x);
+    sb.append(',');
+    sb.append(y);
+    sb.append("),");
+    sb.append(r);
+    sb.append('>');
+  }
+}

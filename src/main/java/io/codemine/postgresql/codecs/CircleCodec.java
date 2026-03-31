@@ -24,13 +24,7 @@ final class CircleCodec implements Codec<Circle> {
 
   @Override
   public void encodeInText(StringBuilder sb, Circle value) {
-    sb.append("<(");
-    sb.append(Double.toString(value.x()));
-    sb.append(',');
-    sb.append(Double.toString(value.y()));
-    sb.append("),");
-    sb.append(Double.toString(value.r()));
-    sb.append('>');
+    value.appendInTextTo(sb);
   }
 
   @Override
