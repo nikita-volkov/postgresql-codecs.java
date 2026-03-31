@@ -106,7 +106,7 @@ record InventoryItem(String name, int qty) {}
 Codec<InventoryItem> itemCodec = new CompositeCodec<>(
     "",                                               // schema (empty = default search path)
     "inventory_item",                                 // PostgreSQL type name
-    (String name) -> (Integer qty) -> new InventoryItem(name, qty),
+    args -> new InventoryItem((String) args[0], (Integer) args[1]),
     new CompositeCodec.Field<>("name", InventoryItem::name, Codec.TEXT),
     new CompositeCodec.Field<>("qty",  InventoryItem::qty,  Codec.INT4));
 ```

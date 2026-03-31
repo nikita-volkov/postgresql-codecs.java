@@ -294,7 +294,7 @@ class NullAndEmptyEdgeCaseTest {
       new CompositeCodec<>(
           "",
           "nullable_text_pair",
-          (String first) -> (String second) -> new NullableTextPair(first, second),
+          args -> new NullableTextPair((String) args[0], (String) args[1]),
           new CompositeCodec.Field<>("first", NullableTextPair::first, Codec.TEXT),
           new CompositeCodec.Field<>("second", NullableTextPair::second, Codec.TEXT));
 
@@ -425,11 +425,12 @@ class NullAndEmptyEdgeCaseTest {
 
   record NullableTaggedData(String tag, List<String> items) {}
 
+  @SuppressWarnings("unchecked")
   static final CompositeCodec<NullableTaggedData> NULLABLE_TAGGED_CODEC =
       new CompositeCodec<>(
           "",
           "nullable_tagged",
-          (String tag) -> (List<String> items) -> new NullableTaggedData(tag, items),
+          args -> new NullableTaggedData((String) args[0], (List<String>) args[1]),
           new CompositeCodec.Field<>("tag", NullableTaggedData::tag, Codec.TEXT),
           new CompositeCodec.Field<>("items", NullableTaggedData::items, Codec.TEXT.inDim()));
 
@@ -519,7 +520,7 @@ class NullAndEmptyEdgeCaseTest {
       new CompositeCodec<>(
           "",
           "triple",
-          (String a) -> (String b) -> (String c) -> new Triple(a, b, c),
+          args -> new Triple((String) args[0], (String) args[1], (String) args[2]),
           new CompositeCodec.Field<>("a", Triple::a, Codec.TEXT),
           new CompositeCodec.Field<>("b", Triple::b, Codec.TEXT),
           new CompositeCodec.Field<>("c", Triple::c, Codec.TEXT));

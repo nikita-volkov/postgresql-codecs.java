@@ -44,7 +44,7 @@ class CompositeCodecTest {
       new CompositeCodec<>(
           "",
           "test_pt",
-          (Integer x) -> (Integer y) -> new Point(x, y),
+          args -> new Point((Integer) args[0], (Integer) args[1]),
           new CompositeCodec.Field<>("x", Point::x, Codec.INT4),
           new CompositeCodec.Field<>("y", Point::y, Codec.INT4));
 
@@ -52,24 +52,25 @@ class CompositeCodecTest {
       new CompositeCodec<>(
           "",
           "test_seg",
-          (Point start) -> (Point end) -> new Segment(start, end),
+          args -> new Segment((Point) args[0], (Point) args[1]),
           new CompositeCodec.Field<>("start_pt", Segment::start, POINT_CODEC),
           new CompositeCodec.Field<>("end_pt", Segment::end, POINT_CODEC));
 
+  @SuppressWarnings("unchecked")
   static final CompositeCodec<TaggedData> TAGGED_DATA_CODEC =
       new CompositeCodec<>(
           "",
           "test_tagged",
-          (String tag) -> (List<String> items) -> new TaggedData(tag, items),
+          args -> new TaggedData((String) args[0], (List<String>) args[1]),
           new CompositeCodec.Field<>("tag", TaggedData::tag, Codec.TEXT),
           new CompositeCodec.Field<>("items", TaggedData::items, Codec.TEXT.inDim()));
 
+  @SuppressWarnings("unchecked")
   static final CompositeCodec<AnnotatedSegment> ANNOTATED_CODEC =
       new CompositeCodec<>(
           "",
           "test_ann_seg",
-          (String label) ->
-              (Segment seg) -> (List<String> tags) -> new AnnotatedSegment(label, seg, tags),
+          args -> new AnnotatedSegment((String) args[0], (Segment) args[1], (List<String>) args[2]),
           new CompositeCodec.Field<>("label", AnnotatedSegment::label, Codec.TEXT),
           new CompositeCodec.Field<>("seg", AnnotatedSegment::seg, SEGMENT_CODEC),
           new CompositeCodec.Field<>("tags", AnnotatedSegment::tags, Codec.TEXT.inDim()));

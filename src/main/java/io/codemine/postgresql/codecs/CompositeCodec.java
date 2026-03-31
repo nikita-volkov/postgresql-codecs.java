@@ -27,121 +27,40 @@ public final class CompositeCodec<Z> implements Codec<Z> {
 
   private final String schema;
   private final String pgName;
-  private final Object constructor;
+  private final Function<Object[], Z> constructor;
   private final Field<Z, ?>[] fields;
 
   /**
-   * Creates a 2-field composite codec.
+   * Creates a composite codec for any number of fields.
    *
-   * @param <A> type of the first field
-   * @param <B> type of the second field
+   * <p>The {@code construct} function receives the decoded field values as an {@code Object[]} in
+   * the same order as the supplied {@code fields}, and must return the composite value. Each
+   * element may be {@code null} when the corresponding PostgreSQL field is NULL.
+   *
+   * <p>Example usage:
+   *
+   * <pre>{@code
+   * new CompositeCodec<>(
+   *     "",
+   *     "my_point",
+   *     args -> new Point((Integer) args[0], (Integer) args[1]),
+   *     new CompositeCodec.Field<>("x", Point::x, Codec.INT4),
+   *     new CompositeCodec.Field<>("y", Point::y, Codec.INT4))
+   * }</pre>
+   *
    * @param schema PostgreSQL schema name, or empty/null for default search path
    * @param name PostgreSQL composite type name
-   * @param construct curried constructor function
-   * @param fieldA first field descriptor
-   * @param fieldB second field descriptor
+   * @param construct function receiving decoded field values and returning the composite object
+   * @param fields field descriptors (at least one)
    */
+  @SafeVarargs
   @SuppressWarnings("unchecked")
-  public <A, B> CompositeCodec(
-      String schema,
-      String name,
-      Function<A, Function<B, Z>> construct,
-      Field<Z, A> fieldA,
-      Field<Z, B> fieldB) {
+  public CompositeCodec(
+      String schema, String name, Function<Object[], Z> construct, Field<Z, ?>... fields) {
     this.schema = schema;
     this.pgName = name;
     this.constructor = construct;
-    this.fields = new Field[] {fieldA, fieldB};
-  }
-
-  /**
-   * Creates a 3-field composite codec.
-   *
-   * @param <A> type of the first field
-   * @param <B> type of the second field
-   * @param <C> type of the third field
-   * @param schema PostgreSQL schema name, or empty/null for default search path
-   * @param name PostgreSQL composite type name
-   * @param construct curried constructor function
-   * @param fieldA first field descriptor
-   * @param fieldB second field descriptor
-   * @param fieldC third field descriptor
-   */
-  @SuppressWarnings("unchecked")
-  public <A, B, C> CompositeCodec(
-      String schema,
-      String name,
-      Function<A, Function<B, Function<C, Z>>> construct,
-      Field<Z, A> fieldA,
-      Field<Z, B> fieldB,
-      Field<Z, C> fieldC) {
-    this.schema = schema;
-    this.pgName = name;
-    this.constructor = construct;
-    this.fields = new Field[] {fieldA, fieldB, fieldC};
-  }
-
-  /**
-   * Creates a 4-field composite codec.
-   *
-   * @param <A> type of the first field
-   * @param <B> type of the second field
-   * @param <C> type of the third field
-   * @param <D> type of the fourth field
-   * @param schema PostgreSQL schema name, or empty/null for default search path
-   * @param name PostgreSQL composite type name
-   * @param construct curried constructor function
-   * @param fieldA first field descriptor
-   * @param fieldB second field descriptor
-   * @param fieldC third field descriptor
-   * @param fieldD fourth field descriptor
-   */
-  @SuppressWarnings("unchecked")
-  public <A, B, C, D> CompositeCodec(
-      String schema,
-      String name,
-      Function<A, Function<B, Function<C, Function<D, Z>>>> construct,
-      Field<Z, A> fieldA,
-      Field<Z, B> fieldB,
-      Field<Z, C> fieldC,
-      Field<Z, D> fieldD) {
-    this.schema = schema;
-    this.pgName = name;
-    this.constructor = construct;
-    this.fields = new Field[] {fieldA, fieldB, fieldC, fieldD};
-  }
-
-  /**
-   * Creates a 5-field composite codec.
-   *
-   * @param <A> type of the first field
-   * @param <B> type of the second field
-   * @param <C> type of the third field
-   * @param <D> type of the fourth field
-   * @param <E> type of the fifth field
-   * @param schema PostgreSQL schema name, or empty/null for default search path
-   * @param name PostgreSQL composite type name
-   * @param construct curried constructor function
-   * @param fieldA first field descriptor
-   * @param fieldB second field descriptor
-   * @param fieldC third field descriptor
-   * @param fieldD fourth field descriptor
-   * @param fieldE fifth field descriptor
-   */
-  @SuppressWarnings("unchecked")
-  public <A, B, C, D, E> CompositeCodec(
-      String schema,
-      String name,
-      Function<A, Function<B, Function<C, Function<D, Function<E, Z>>>>> construct,
-      Field<Z, A> fieldA,
-      Field<Z, B> fieldB,
-      Field<Z, C> fieldC,
-      Field<Z, D> fieldD,
-      Field<Z, E> fieldE) {
-    this.schema = schema;
-    this.pgName = name;
-    this.constructor = construct;
-    this.fields = new Field[] {fieldA, fieldB, fieldC, fieldD, fieldE};
+    this.fields = fields;
   }
 
   @Override
@@ -209,7 +128,7 @@ public final class CompositeCodec<Z> implements Codec<Z> {
       throw new Codec.DecodingException(input, offset, "Expected '(' to open composite " + pgName);
     }
     int i = offset + 1; // skip '('
-    Object fn = constructor;
+    Object[] args = new Object[fields.length];
     for (int fieldIdx = 0; fieldIdx < fields.length; fieldIdx++) {
       if (fieldIdx > 0) {
         if (i >= len || input.charAt(i) != ',') {
@@ -220,7 +139,7 @@ public final class CompositeCodec<Z> implements Codec<Z> {
       }
       if (i >= len || input.charAt(i) == ',' || input.charAt(i) == ')') {
         // NULL field
-        fn = ((Function<Object, Object>) fn).apply(null);
+        args[fieldIdx] = null;
       } else if (input.charAt(i) == '"') {
         // Quoted field — unescape into a StringBuilder and parse it directly
         i++; // skip opening '"'
@@ -253,24 +172,23 @@ public final class CompositeCodec<Z> implements Codec<Z> {
             }
           }
         }
-        var result = ((Codec<Object>) fields[fieldIdx].codec).decodeInText(sb, 0);
-        fn = ((Function<Object, Object>) fn).apply(result.value);
+        args[fieldIdx] = ((Codec<Object>) fields[fieldIdx].codec).decodeInText(sb, 0).value;
       } else {
         // Unquoted field — pass a subSequence bounded to this field
         int fieldStart = i;
         while (i < len && input.charAt(i) != ',' && input.charAt(i) != ')') {
           i++;
         }
-        var result =
+        args[fieldIdx] =
             ((Codec<Object>) fields[fieldIdx].codec)
-                .decodeInText(input.subSequence(fieldStart, i), 0);
-        fn = ((Function<Object, Object>) fn).apply(result.value);
+                .decodeInText(input.subSequence(fieldStart, i), 0)
+                .value;
       }
     }
     if (i >= len || input.charAt(i) != ')') {
       throw new Codec.DecodingException(input, i, "Expected ')' to close composite " + pgName);
     }
-    return new Codec.ParsingResult<>((Z) fn, i + 1);
+    return new Codec.ParsingResult<>(constructor.apply(args), i + 1);
   }
 
   // -----------------------------------------------------------------------
@@ -332,9 +250,9 @@ public final class CompositeCodec<Z> implements Codec<Z> {
               + fieldCount);
     }
 
-    Object fn = constructor;
-    for (var f : fields) {
-      var field = (Field<Z, Object>) f;
+    Object[] args = new Object[fields.length];
+    for (int idx = 0; idx < fields.length; idx++) {
+      var field = (Field<Z, Object>) fields[idx];
       int fieldOid = buf.getInt();
       int expectedFieldOid = field.codec.oid();
       if (expectedFieldOid != 0 && fieldOid != expectedFieldOid) {
@@ -349,26 +267,20 @@ public final class CompositeCodec<Z> implements Codec<Z> {
                 + fieldOid);
       }
       int fieldLen = buf.getInt();
-      if (fieldLen == -1) {
-        fn = ((Function<Object, Object>) fn).apply(null);
-      } else {
-        Object fieldValue = ((Codec<Object>) field.codec).decodeInBinary(buf, fieldLen);
-        fn = ((Function<Object, Object>) fn).apply(fieldValue);
-      }
+      args[idx] =
+          fieldLen == -1 ? null : ((Codec<Object>) field.codec).decodeInBinary(buf, fieldLen);
     }
-    return (Z) fn;
+    return constructor.apply(args);
   }
 
   @Override
   @SuppressWarnings("unchecked")
   public Z random(Random r, int size) {
-    Object fn = constructor;
-    for (var f : fields) {
-      var field = (Field<Z, Object>) f;
-      Object randomValue = ((Codec<Object>) field.codec).random(r, size);
-      fn = ((Function<Object, Object>) fn).apply(randomValue);
+    Object[] args = new Object[fields.length];
+    for (int idx = 0; idx < fields.length; idx++) {
+      args[idx] = ((Codec<Object>) fields[idx].codec).random(r, size);
     }
-    return (Z) fn;
+    return constructor.apply(args);
   }
 
   /**
