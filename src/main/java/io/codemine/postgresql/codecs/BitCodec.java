@@ -85,15 +85,14 @@ final class BitCodec implements Codec<Bit> {
 
   @Override
   public Bit random(Random r, int randomSize) {
-    int len = size > 0 ? size : (randomSize == 0 ? 1 : r.nextInt(1, randomSize + 1));
-    int numBytes = (len + 7) / 8;
+    int numBytes = (size + 7) / 8;
     byte[] data = new byte[numBytes];
     r.nextBytes(data);
     // Zero out padding bits in the last byte
-    int padding = numBytes * 8 - len;
+    int padding = numBytes * 8 - size;
     if (padding > 0) {
       data[numBytes - 1] &= (byte) (0xFF << padding);
     }
-    return new Bit(len, data);
+    return new Bit(size, data);
   }
 }

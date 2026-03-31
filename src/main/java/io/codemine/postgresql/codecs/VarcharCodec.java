@@ -74,7 +74,7 @@ final class VarcharCodec implements Codec<String> {
     if (effectiveMax < 0) {
       effectiveMax = 0;
     }
-    int len = effectiveMax > 0 ? r.nextInt(effectiveMax + 1) : 0;
+    int len = r.nextInt(-1, effectiveMax) + 1;
     // Reuse TextCodec's random string generation logic.
     final int range1Size = 0xD7FF;
     final int totalValid = range1Size + (0x10FFFF - 0xE000 + 1);
