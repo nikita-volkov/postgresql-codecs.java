@@ -36,6 +36,8 @@ class CompositeCodecTest {
 
   record AnnotatedSegment(String label, Segment seg, List<String> tags) {}
 
+  record Sextuple(int a, int b, int c, int d, int e, int f) {}
+
   // -----------------------------------------------------------------------
   // Composite codecs
   // -----------------------------------------------------------------------
@@ -73,6 +75,40 @@ class CompositeCodecTest {
           new CompositeCodec.Field<>("label", AnnotatedSegment::label, Codec.TEXT),
           new CompositeCodec.Field<>("seg", AnnotatedSegment::seg, SEGMENT_CODEC),
           new CompositeCodec.Field<>("tags", AnnotatedSegment::tags, Codec.TEXT.inDim()));
+
+  static final CompositeCodec<Sextuple> SEXTUPLE_TYPED_CODEC =
+      new CompositeCodec<>(
+          "",
+          "test_sextuple",
+          (Integer a) ->
+              (Integer b) ->
+                  (Integer c) ->
+                      (Integer d) -> (Integer e) -> (Integer f) -> new Sextuple(a, b, c, d, e, f),
+          new CompositeCodec.Field<>("a", Sextuple::a, Codec.INT4),
+          new CompositeCodec.Field<>("b", Sextuple::b, Codec.INT4),
+          new CompositeCodec.Field<>("c", Sextuple::c, Codec.INT4),
+          new CompositeCodec.Field<>("d", Sextuple::d, Codec.INT4),
+          new CompositeCodec.Field<>("e", Sextuple::e, Codec.INT4),
+          new CompositeCodec.Field<>("f", Sextuple::f, Codec.INT4));
+
+  static final CompositeCodec<Sextuple> SEXTUPLE_VARARG_CODEC =
+      new CompositeCodec<>(
+          "",
+          "test_sextuple",
+          (Object[] a) ->
+              new Sextuple(
+                  (Integer) a[0],
+                  (Integer) a[1],
+                  (Integer) a[2],
+                  (Integer) a[3],
+                  (Integer) a[4],
+                  (Integer) a[5]),
+          new CompositeCodec.Field<>("a", Sextuple::a, Codec.INT4),
+          new CompositeCodec.Field<>("b", Sextuple::b, Codec.INT4),
+          new CompositeCodec.Field<>("c", Sextuple::c, Codec.INT4),
+          new CompositeCodec.Field<>("d", Sextuple::d, Codec.INT4),
+          new CompositeCodec.Field<>("e", Sextuple::e, Codec.INT4),
+          new CompositeCodec.Field<>("f", Sextuple::f, Codec.INT4));
 
   @Test
   void binaryDecodeRejectsUnexpectedScalarFieldOid() {
@@ -159,6 +195,22 @@ class CompositeCodecTest {
   class NestedCompositeWithArrayTests extends CodecTestBase<AnnotatedSegment> {
     NestedCompositeWithArrayTests() {
       super(ANNOTATED_CODEC);
+    }
+  }
+
+  /** 6-field scalar composite using the arity-6 typed constructor. */
+  @Group
+  class SextupleTypedTests extends CodecTestBase<Sextuple> {
+    SextupleTypedTests() {
+      super(SEXTUPLE_TYPED_CODEC);
+    }
+  }
+
+  /** 6-field scalar composite using the vararg constructor. */
+  @Group
+  class SextupleVarargTests extends CodecTestBase<Sextuple> {
+    SextupleVarargTests() {
+      super(SEXTUPLE_VARARG_CODEC);
     }
   }
 }
