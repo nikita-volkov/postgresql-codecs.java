@@ -38,6 +38,14 @@ public record Tsvector(List<Lexeme> lexemes) {
     }
   }
 
+  /** Weight of a tsvector lexeme position. */
+  public enum Weight {
+    A,
+    B,
+    C,
+    D
+  }
+
   /** Compact constructor that makes an immutable copy of lexemes. */
   public Tsvector {
     lexemes = List.copyOf(lexemes);

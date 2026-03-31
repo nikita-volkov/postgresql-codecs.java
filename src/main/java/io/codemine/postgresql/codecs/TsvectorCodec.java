@@ -46,7 +46,7 @@ final class TsvectorCodec implements Codec<Tsvector> {
           }
           Tsvector.Position p = lex.positions().get(j);
           sb.append(p.pos());
-          if (p.weight() != Weight.D) {
+          if (p.weight() != Tsvector.Weight.D) {
             sb.append(p.weight().name());
           }
         }
@@ -109,20 +109,20 @@ final class TsvectorCodec implements Codec<Tsvector> {
             break;
           }
           int posNum = Integer.parseInt(input.subSequence(numStart, pos).toString());
-          Weight weight = Weight.D;
+          Tsvector.Weight weight = Tsvector.Weight.D;
           if (pos < len) {
             char wc = input.charAt(pos);
             if (wc == 'A') {
-              weight = Weight.A;
+              weight = Tsvector.Weight.A;
               pos++;
             } else if (wc == 'B') {
-              weight = Weight.B;
+              weight = Tsvector.Weight.B;
               pos++;
             } else if (wc == 'C') {
-              weight = Weight.C;
+              weight = Tsvector.Weight.C;
               pos++;
             } else if (wc == 'D') {
-              weight = Weight.D;
+              weight = Tsvector.Weight.D;
               pos++;
             }
           }
@@ -204,19 +204,19 @@ final class TsvectorCodec implements Codec<Tsvector> {
       for (int j = 0; j < numPositions; j++) {
         int posWord = buf.getShort() & 0xFFFF;
         int weightBits = (posWord >>> 14) & 0x3;
-        Weight weight;
+        Tsvector.Weight weight;
         switch (weightBits) {
           case 3:
-            weight = Weight.A;
+            weight = Tsvector.Weight.A;
             break;
           case 2:
-            weight = Weight.B;
+            weight = Tsvector.Weight.B;
             break;
           case 1:
-            weight = Weight.C;
+            weight = Tsvector.Weight.C;
             break;
           default:
-            weight = Weight.D;
+            weight = Tsvector.Weight.D;
             break;
         }
         int posNum = posWord & 0x3FFF;
@@ -244,7 +244,7 @@ final class TsvectorCodec implements Codec<Tsvector> {
       List<Tsvector.Position> positions = new ArrayList<>(numPositions);
       for (int j = 0; j < numPositions; j++) {
         int posNum = r.nextInt(16383) + 1;
-        Weight weight = Weight.values()[r.nextInt(4)];
+        Tsvector.Weight weight = Tsvector.Weight.values()[r.nextInt(4)];
         positions.add(new Tsvector.Position(posNum, weight));
       }
       lexemes.add(new Tsvector.Lexeme(token.toString(), positions));
