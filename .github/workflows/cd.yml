@@ -14,8 +14,6 @@ jobs:
     permissions:
       contents: write
       packages: write
-      pages: write
-      id-token: write
 
     steps:
       - name: Validate SemVer version format
@@ -44,13 +42,80 @@ jobs:
       - name: Generate documentation site
         run: mvn site -DskipTests
 
-      - name: Upload site
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: target/site
+      - name: Deploy documentation to GitHub Pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOY_DIR: ${{ inputs.version }}
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Deploy site to GitHub Pages
-        uses: actions/deploy-pages@v4
+          PAGES_DIR=/tmp/gh-pages
+          REPO_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          if git ls-remote --exit-code "${REPO_URL}" refs/heads/gh-pages >/dev/null 2>&1; then
+            git clone --depth=1 --branch gh-pages "${REPO_URL}" "${PAGES_DIR}"
+          else
+            mkdir -p "${PAGES_DIR}"
+            git -C "${PAGES_DIR}" init
+            git -C "${PAGES_DIR}" remote add origin "${REPO_URL}"
+            git -C "${PAGES_DIR}" checkout -b gh-pages
+          fi
+
+          rm -rf "${PAGES_DIR}/${DEPLOY_DIR}"
+          cp -r target/site "${PAGES_DIR}/${DEPLOY_DIR}"
+
+          cat > /tmp/gen_index.py << 'PYEOF'
+          import os
+
+          work_dir = '/tmp/gh-pages'
+          entries = [d for d in os.listdir(work_dir)
+                     if os.path.isdir(os.path.join(work_dir, d)) and not d.startswith('.')]
+
+          latest = [d for d in entries if d == 'latest']
+          versions = sorted(
+              [d for d in entries if d != 'latest'],
+              key=lambda v: [int(x) if x.isdigit() else 0 for x in v.split('.')],
+              reverse=True
+          )
+
+          lines = ['<!DOCTYPE html>',
+                   '<html lang="en">',
+                   '<head>',
+                   '  <meta charset="UTF-8">',
+                   '  <meta name="viewport" content="width=device-width, initial-scale=1.0">',
+                   '  <title>postgresql-codecs.java Documentation</title>',
+                   '  <style>',
+                   '    body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; padding: 0 1rem; }',
+                   '    h1 { color: #333; }',
+                   '    ul { list-style: none; padding: 0; }',
+                   '    li { margin: 0.5rem 0; }',
+                   '    a { color: #0366d6; text-decoration: none; font-size: 1.1rem; }',
+                   "    a:hover { text-decoration: underline; }",
+                   '  </style>',
+                   '</head>',
+                   '<body>',
+                   '  <h1>postgresql-codecs.java Documentation</h1>',
+                   '  <ul>']
+
+          for d in latest + versions:
+              lines.append('    <li><a href="%s/">%s</a></li>' % (d, d))
+
+          lines += ['  </ul>', '</body>', '</html>', '']
+
+          with open(work_dir + '/index.html', 'w') as f:
+              f.write('\n'.join(lines))
+          PYEOF
+          python3 /tmp/gen_index.py
+
+          cd "${PAGES_DIR}"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Deploy docs: ${DEPLOY_DIR}"
+            git push origin gh-pages
+          else
+            echo "No changes to deploy"
+          fi
 
       - name: Publish to GitHub Packages
         run: mvn --batch-mode deploy -DskipTests
@@ -65,6 +130,18 @@ jobs:
           file_pattern: pom.xml
 
       - name: Create GitHub release
-        run: gh release create "v${{ inputs.version }}" --title "v${{ inputs.version }}" --generate-notes --target ${{ steps.commit.outputs.commit_hash }}
         env:
           GH_TOKEN: ${{ github.token }}
+        run: |
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          DOCS_URL="https://${GITHUB_REPOSITORY_OWNER}.github.io/${REPO_NAME}/${{ inputs.version }}/"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/generate-notes" \
+            -f "tag_name=v${{ inputs.version }}" \
+            -f "target_commitish=${{ steps.commit.outputs.commit_hash }}" \
+            --jq '.body' > /tmp/auto-notes.md
+          printf '**Documentation:** [v%s](%s)\n\n' "${{ inputs.version }}" "${DOCS_URL}" | \
+            cat - /tmp/auto-notes.md > /tmp/release-notes.md
+          gh release create "v${{ inputs.version }}" \
+            --title "v${{ inputs.version }}" \
+            --notes-file /tmp/release-notes.md \
+            --target "${{ steps.commit.outputs.commit_hash }}"

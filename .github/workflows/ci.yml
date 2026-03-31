@@ -27,5 +27,104 @@ jobs:
       - name: Run tests
         run: mvn verify
 
-      - name: Validate documentation
+      - name: Generate documentation site
         run: mvn site -DskipTests
+
+      - name: Upload site artifact
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@v4
+        with:
+          name: site
+          path: target/site
+
+  deploy-docs:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-docs
+      cancel-in-progress: true
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download site artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: target/site
+
+      - name: Deploy documentation to /latest on GitHub Pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOY_DIR: latest
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          PAGES_DIR=/tmp/gh-pages
+          REPO_URL="https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+
+          if git ls-remote --exit-code "${REPO_URL}" refs/heads/gh-pages >/dev/null 2>&1; then
+            git clone --depth=1 --branch gh-pages "${REPO_URL}" "${PAGES_DIR}"
+          else
+            mkdir -p "${PAGES_DIR}"
+            git -C "${PAGES_DIR}" init
+            git -C "${PAGES_DIR}" remote add origin "${REPO_URL}"
+            git -C "${PAGES_DIR}" checkout -b gh-pages
+          fi
+
+          rm -rf "${PAGES_DIR}/${DEPLOY_DIR}"
+          cp -r target/site "${PAGES_DIR}/${DEPLOY_DIR}"
+
+          cat > /tmp/gen_index.py << 'PYEOF'
+          import os
+
+          work_dir = '/tmp/gh-pages'
+          entries = [d for d in os.listdir(work_dir)
+                     if os.path.isdir(os.path.join(work_dir, d)) and not d.startswith('.')]
+
+          latest = [d for d in entries if d == 'latest']
+          versions = sorted(
+              [d for d in entries if d != 'latest'],
+              key=lambda v: [int(x) if x.isdigit() else 0 for x in v.split('.')],
+              reverse=True
+          )
+
+          lines = ['<!DOCTYPE html>',
+                   '<html lang="en">',
+                   '<head>',
+                   '  <meta charset="UTF-8">',
+                   '  <meta name="viewport" content="width=device-width, initial-scale=1.0">',
+                   '  <title>postgresql-codecs.java Documentation</title>',
+                   '  <style>',
+                   '    body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; padding: 0 1rem; }',
+                   '    h1 { color: #333; }',
+                   '    ul { list-style: none; padding: 0; }',
+                   '    li { margin: 0.5rem 0; }',
+                   '    a { color: #0366d6; text-decoration: none; font-size: 1.1rem; }',
+                   "    a:hover { text-decoration: underline; }",
+                   '  </style>',
+                   '</head>',
+                   '<body>',
+                   '  <h1>postgresql-codecs.java Documentation</h1>',
+                   '  <ul>']
+
+          for d in latest + versions:
+              lines.append('    <li><a href="%s/">%s</a></li>' % (d, d))
+
+          lines += ['  </ul>', '</body>', '</html>', '']
+
+          with open(work_dir + '/index.html', 'w') as f:
+              f.write('\n'.join(lines))
+          PYEOF
+          python3 /tmp/gen_index.py
+
+          cd "${PAGES_DIR}"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Deploy docs: ${DEPLOY_DIR}"
+            git push origin gh-pages
+          else
+            echo "No changes to deploy"
+          fi
