@@ -64,10 +64,7 @@ jobs:
           commit_message: Set package version to ${{ inputs.version }}
           file_pattern: pom.xml
 
-      - name: Create release tag
-        uses: mathieudutour/github-tag-action@v6.2
-        with:
-          github_token: ${{ github.token }}
-          custom_tag: ${{ inputs.version }}
-          tag_prefix: v
-          commit_sha: ${{ steps.commit.outputs.commit_hash }}
+      - name: Create GitHub release
+        run: gh release create "v${{ inputs.version }}" --title "v${{ inputs.version }}" --generate-notes --target ${{ steps.commit.outputs.commit_hash }}
+        env:
+          GH_TOKEN: ${{ github.token }}
