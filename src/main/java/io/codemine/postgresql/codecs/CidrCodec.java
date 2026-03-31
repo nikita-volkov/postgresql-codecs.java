@@ -115,15 +115,57 @@ final class CidrCodec implements Codec<Cidr> {
 
     if (addrPart.contains(":")) {
       // IPv6
+      if (netmask < 0 || netmask > 128) {
+        throw new Exception("Invalid IPv6 CIDR netmask (expected 0-128): " + netmask);
+      }
       int[] groups = InetCodec.parseIpV6Groups(addrPart);
-      int w1 = (groups[0] << 16) | groups[1];
-      int w2 = (groups[2] << 16) | groups[3];
-      int w3 = (groups[4] << 16) | groups[5];
-      int w4 = (groups[6] << 16) | groups[7];
-      return new Cidr.V6(w1, w2, w3, w4, (byte) netmask);
+      int[] words = new int[4];
+      words[0] = (groups[0] << 16) | groups[1];
+      words[1] = (groups[2] << 16) | groups[3];
+      words[2] = (groups[4] << 16) | groups[5];
+      words[3] = (groups[6] << 16) | groups[7];
+
+      // Zero out host bits according to the netmask
+      int maskBits = netmask;
+      if (maskBits <= 0) {
+        // /0: whole address space, all bits are host bits -> zero everything
+        words[0] = 0;
+        words[1] = 0;
+        words[2] = 0;
+        words[3] = 0;
+      } else if (maskBits < 128) {
+        for (int i = 0; i < 4; i++) {
+          int wordStart = i * 32;
+          if (maskBits >= wordStart + 32) {
+            // Entire word is network bits, keep as-is
+            continue;
+          } else if (maskBits <= wordStart) {
+            // Entire word is host bits, zero it
+            words[i] = 0;
+          } else {
+            // Partial: zero out the host bits in this word
+            int bitsToKeep = maskBits - wordStart;
+            words[i] = (bitsToKeep == 0) ? 0 : (words[i] & (-1 << (32 - bitsToKeep)));
+          }
+        }
+      }
+
+      return new Cidr.V6(words[0], words[1], words[2], words[3], (byte) netmask);
     } else {
       // IPv4
+      if (netmask < 0 || netmask > 32) {
+        throw new Exception("Invalid IPv4 CIDR netmask (expected 0-32): " + netmask);
+      }
       int addr = InetCodec.parseIpV4(addrPart);
+
+      // Zero out host bits according to the netmask
+      int maskBits = netmask;
+      if (maskBits <= 0) {
+        // /0: whole address space, all bits are host bits -> zero everything
+        addr = 0;
+      } else if (maskBits < 32) {
+        addr &= (-1 << (32 - maskBits));
+      }
       return new Cidr.V4(addr, (byte) netmask);
     }
   }
