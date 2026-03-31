@@ -50,7 +50,11 @@ final class CidrCodec implements Codec<Cidr> {
     }
     byte af = buf.get();
     byte netmask = buf.get();
-    buf.get(); // is_cidr flag, ignored
+    byte isCidr = buf.get();
+    if (isCidr != 1) {
+      throw new Codec.DecodingException(
+          "Expected is_cidr=1 in binary cidr payload, got " + Byte.toUnsignedInt(isCidr));
+    }
     int addrLen = Byte.toUnsignedInt(buf.get());
     return switch (af) {
       case 2 -> {

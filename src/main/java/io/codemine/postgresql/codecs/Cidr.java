@@ -30,8 +30,8 @@ public sealed interface Cidr permits Cidr.V4, Cidr.V6 {
      * Canonical constructor that enforces the documented invariants:
      *
      * <ul>
-     *   <li>{@code netmask} must be in the range 0–32 (inclusive)</li>
-     *   <li>all host bits of {@code address} beyond the netmask must be zero</li>
+     *   <li>{@code netmask} must be in the range 0–32 (inclusive)
+     *   <li>all host bits of {@code address} beyond the netmask must be zero
      * </ul>
      *
      * @throws IllegalArgumentException if the arguments do not satisfy the invariants
@@ -50,6 +50,7 @@ public sealed interface Cidr permits Cidr.V4, Cidr.V6 {
         }
       }
     }
+
     @Override
     public void write(StringBuilder sb) {
       sb.append((address >>> 24) & 0xFF);
@@ -93,6 +94,45 @@ public sealed interface Cidr permits Cidr.V4, Cidr.V6 {
    * @param netmask Network mask length in the range 0–128.
    */
   record V6(int w1, int w2, int w3, int w4, byte netmask) implements Cidr {
+
+    /**
+     * Canonical constructor that enforces the documented invariants:
+     *
+     * <ul>
+     *   <li>{@code netmask} must be in the range 0–128 (inclusive)
+     *   <li>all host bits of the address beyond the netmask must be zero
+     * </ul>
+     *
+     * @throws IllegalArgumentException if the arguments do not satisfy the invariants
+     */
+    public V6 {
+      int nm = netmask & 0xFF; // treat as unsigned
+      if (nm > 128) {
+        throw new IllegalArgumentException("Invalid IPv6 CIDR netmask length: " + nm);
+      }
+      int[] words = {w1, w2, w3, w4};
+      for (int i = 0; i < 4; i++) {
+        int wordStart = i * 32;
+        if (nm >= wordStart + 32) {
+          // Entire word is network bits — nothing to check.
+        } else if (nm <= wordStart) {
+          // Entire word is host bits — must be zero.
+          if (words[i] != 0) {
+            throw new IllegalArgumentException(
+                "IPv6 CIDR address has non-zero host bits for netmask /" + nm);
+          }
+        } else {
+          // Partial word — check host bits are zero.
+          int bitsToKeep = nm - wordStart;
+          int mask = -1 << (32 - bitsToKeep);
+          if ((words[i] & mask) != words[i]) {
+            throw new IllegalArgumentException(
+                "IPv6 CIDR address has non-zero host bits for netmask /" + nm);
+          }
+        }
+      }
+    }
+
     @Override
     public void write(StringBuilder sb) {
       // Formats a 128-bit IPv6 network address (stored as four 32-bit words) as compressed text

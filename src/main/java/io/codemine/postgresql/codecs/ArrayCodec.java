@@ -61,30 +61,43 @@ final class ArrayCodec<A> implements Codec<List<A>> {
       if (i > 0) {
         sb.append(delimiter);
       }
-      StringBuilder elem = new StringBuilder();
-      elementCodec.encodeInText(elem, value.get(i));
-      int len = elem.length();
+      A elem = value.get(i);
+      if (elem == null) {
+        // PostgreSQL represents null array elements as the unquoted literal NULL.
+        sb.append("NULL");
+        continue;
+      }
+      StringBuilder elemSb = new StringBuilder();
+      elementCodec.encodeInText(elemSb, elem);
+      int len = elemSb.length();
       if (len == 0) {
         sb.append("\"\"");
         continue;
       }
       boolean needsQuoting = false;
-      for (int j = 0; j < len; j++) {
-        char c = elem.charAt(j);
-        if (c == delimiter
-            || c == '{'
-            || c == '}'
-            || c == '"'
-            || c == '\\'
-            || Character.isWhitespace(c)) {
-          needsQuoting = true;
-          break;
+      // A bare "NULL" (case-insensitive) would be interpreted as a null element by PostgreSQL.
+      // Quote it to preserve the literal string value.
+      if (len == 4 && "NULL".equalsIgnoreCase(elemSb.toString())) {
+        needsQuoting = true;
+      }
+      if (!needsQuoting) {
+        for (int j = 0; j < len; j++) {
+          char c = elemSb.charAt(j);
+          if (c == delimiter
+              || c == '{'
+              || c == '}'
+              || c == '"'
+              || c == '\\'
+              || Character.isWhitespace(c)) {
+            needsQuoting = true;
+            break;
+          }
         }
       }
       if (needsQuoting) {
         sb.append('"');
         for (int j = 0; j < len; j++) {
-          char c = elem.charAt(j);
+          char c = elemSb.charAt(j);
           if (c == '"' || c == '\\') {
             sb.append('\\');
           }
@@ -92,7 +105,7 @@ final class ArrayCodec<A> implements Codec<List<A>> {
         }
         sb.append('"');
       } else {
-        sb.append(elem);
+        sb.append(elemSb);
       }
     }
     sb.append("}");
