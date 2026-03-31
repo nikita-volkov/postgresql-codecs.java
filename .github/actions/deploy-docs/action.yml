@@ -84,7 +84,17 @@ runs:
           background: var(--bg-alt);
           box-shadow: 0 1px 2px rgba(0,0,0,.1);
         }
-        nav .logo { font-size: 1.5rem; color: var(--fg-bright); }
+        nav .logo { 
+          font-size: 1.5rem;
+          color: var(--fg);
+        }
+        nav .logo a { 
+          color: inherit;
+          text-decoration: inherit;
+        }
+        nav .logo a:hover {
+          color: var(--fg-bright);
+        }
         main {
           max-width: 800px;
           margin: 6rem auto;
@@ -99,7 +109,7 @@ runs:
           margin: 0 auto;
         }
         li { margin: .5rem 0; }
-        a {
+        li a {
           display: block;
           padding: .9rem 1.5rem;
           border: 1px solid rgba(255,255,255,.1);
@@ -109,7 +119,7 @@ runs:
           font-size: 1.2rem;
           transition: all .2s ease;
         }
-        a:hover { background: var(--bg-alt); border-color: var(--accent); }
+        li a:hover { background: var(--bg-alt); border-color: var(--accent); }
         .badge {
           font-size: .75rem;
           background: var(--accent);
@@ -124,7 +134,7 @@ runs:
         </style>
         </head>
         <body>
-        <nav><div class="logo">codemine.io</div></nav>
+        <nav><div class="logo"><a href="/">codemine.io</a></div></nav>
         <main>
         <h1>${REPO_NAME}</h1>
         <p class="subtitle">Documentation</p>
