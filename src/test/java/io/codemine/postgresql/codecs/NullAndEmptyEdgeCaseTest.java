@@ -255,12 +255,22 @@ class NullAndEmptyEdgeCaseTest {
     /** Case-insensitive NULL variants should also be quoted. */
     @Test
     void nullLiteralStringLowercase_textRoundTrip() throws Exception {
-      assertTextRoundTrip(Codec.TEXT.inDim(), List.of("null"));
+      List<String> value = List.of("null");
+      Codec<List<String>> arrayCodec = Codec.TEXT.inDim();
+      StringBuilder sb = new StringBuilder();
+      arrayCodec.encodeInText(sb, value);
+      assertEquals("{\"null\"}", sb.toString());
+      assertTextRoundTrip(arrayCodec, value);
     }
 
     @Test
     void nullLiteralStringMixedCase_textRoundTrip() throws Exception {
-      assertTextRoundTrip(Codec.TEXT.inDim(), List.of("Null"));
+      List<String> value = List.of("Null");
+      Codec<List<String>> arrayCodec = Codec.TEXT.inDim();
+      StringBuilder sb = new StringBuilder();
+      arrayCodec.encodeInText(sb, value);
+      assertEquals("{\"Null\"}", sb.toString());
+      assertTextRoundTrip(arrayCodec, value);
     }
 
     @Test
