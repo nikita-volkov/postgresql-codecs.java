@@ -29,6 +29,7 @@ public final class CompositeCodec<Z> implements Codec<Z> {
   private final String pgName;
   private final Object constructor;
   private final Field<Z, ?>[] fields;
+  private final boolean vararg;
 
   /**
    * Creates a 2-field composite codec.
@@ -52,6 +53,7 @@ public final class CompositeCodec<Z> implements Codec<Z> {
     this.pgName = name;
     this.constructor = construct;
     this.fields = new Field[] {fieldA, fieldB};
+    this.vararg = false;
   }
 
   /**
@@ -79,6 +81,7 @@ public final class CompositeCodec<Z> implements Codec<Z> {
     this.pgName = name;
     this.constructor = construct;
     this.fields = new Field[] {fieldA, fieldB, fieldC};
+    this.vararg = false;
   }
 
   /**
@@ -109,6 +112,7 @@ public final class CompositeCodec<Z> implements Codec<Z> {
     this.pgName = name;
     this.constructor = construct;
     this.fields = new Field[] {fieldA, fieldB, fieldC, fieldD};
+    this.vararg = false;
   }
 
   /**
@@ -142,6 +146,597 @@ public final class CompositeCodec<Z> implements Codec<Z> {
     this.pgName = name;
     this.constructor = construct;
     this.fields = new Field[] {fieldA, fieldB, fieldC, fieldD, fieldE};
+    this.vararg = false;
+  }
+
+  /**
+   * Creates a 6-field composite codec.
+   *
+   * @param <A> type of the first field
+   * @param <B> type of the second field
+   * @param <C> type of the third field
+   * @param <D> type of the fourth field
+   * @param <E> type of the fifth field
+   * @param <F> type of the sixth field
+   * @param schema PostgreSQL schema name, or empty/null for default search path
+   * @param name PostgreSQL composite type name
+   * @param construct curried constructor function
+   * @param fieldA first field descriptor
+   * @param fieldB second field descriptor
+   * @param fieldC third field descriptor
+   * @param fieldD fourth field descriptor
+   * @param fieldE fifth field descriptor
+   * @param fieldF sixth field descriptor
+   */
+  @SuppressWarnings("unchecked")
+  public <A, B, C, D, E, F> CompositeCodec(
+      String schema,
+      String name,
+      Function<A, Function<B, Function<C, Function<D, Function<E, Function<F, Z>>>>>> construct,
+      Field<Z, A> fieldA,
+      Field<Z, B> fieldB,
+      Field<Z, C> fieldC,
+      Field<Z, D> fieldD,
+      Field<Z, E> fieldE,
+      Field<Z, F> fieldF) {
+    this.schema = schema;
+    this.pgName = name;
+    this.constructor = construct;
+    this.fields = new Field[] {fieldA, fieldB, fieldC, fieldD, fieldE, fieldF};
+    this.vararg = false;
+  }
+
+  /**
+   * Creates a 7-field composite codec.
+   *
+   * @param <A> type of the first field
+   * @param <B> type of the second field
+   * @param <C> type of the third field
+   * @param <D> type of the fourth field
+   * @param <E> type of the fifth field
+   * @param <F> type of the sixth field
+   * @param <G> type of the seventh field
+   * @param schema PostgreSQL schema name, or empty/null for default search path
+   * @param name PostgreSQL composite type name
+   * @param construct curried constructor function
+   * @param fieldA first field descriptor
+   * @param fieldB second field descriptor
+   * @param fieldC third field descriptor
+   * @param fieldD fourth field descriptor
+   * @param fieldE fifth field descriptor
+   * @param fieldF sixth field descriptor
+   * @param fieldG seventh field descriptor
+   */
+  @SuppressWarnings("unchecked")
+  public <A, B, C, D, E, F, G> CompositeCodec(
+      String schema,
+      String name,
+      Function<A, Function<B, Function<C, Function<D, Function<E, Function<F, Function<G, Z>>>>>>>
+          construct,
+      Field<Z, A> fieldA,
+      Field<Z, B> fieldB,
+      Field<Z, C> fieldC,
+      Field<Z, D> fieldD,
+      Field<Z, E> fieldE,
+      Field<Z, F> fieldF,
+      Field<Z, G> fieldG) {
+    this.schema = schema;
+    this.pgName = name;
+    this.constructor = construct;
+    this.fields = new Field[] {fieldA, fieldB, fieldC, fieldD, fieldE, fieldF, fieldG};
+    this.vararg = false;
+  }
+
+  /**
+   * Creates an 8-field composite codec.
+   *
+   * @param <A> type of the first field
+   * @param <B> type of the second field
+   * @param <C> type of the third field
+   * @param <D> type of the fourth field
+   * @param <E> type of the fifth field
+   * @param <F> type of the sixth field
+   * @param <G> type of the seventh field
+   * @param <H> type of the eighth field
+   * @param schema PostgreSQL schema name, or empty/null for default search path
+   * @param name PostgreSQL composite type name
+   * @param construct curried constructor function
+   * @param fieldA first field descriptor
+   * @param fieldB second field descriptor
+   * @param fieldC third field descriptor
+   * @param fieldD fourth field descriptor
+   * @param fieldE fifth field descriptor
+   * @param fieldF sixth field descriptor
+   * @param fieldG seventh field descriptor
+   * @param fieldH eighth field descriptor
+   */
+  @SuppressWarnings("unchecked")
+  public <A, B, C, D, E, F, G, H> CompositeCodec(
+      String schema,
+      String name,
+      Function<
+              A,
+              Function<
+                  B,
+                  Function<C, Function<D, Function<E, Function<F, Function<G, Function<H, Z>>>>>>>>
+          construct,
+      Field<Z, A> fieldA,
+      Field<Z, B> fieldB,
+      Field<Z, C> fieldC,
+      Field<Z, D> fieldD,
+      Field<Z, E> fieldE,
+      Field<Z, F> fieldF,
+      Field<Z, G> fieldG,
+      Field<Z, H> fieldH) {
+    this.schema = schema;
+    this.pgName = name;
+    this.constructor = construct;
+    this.fields = new Field[] {fieldA, fieldB, fieldC, fieldD, fieldE, fieldF, fieldG, fieldH};
+    this.vararg = false;
+  }
+
+  /**
+   * Creates a 9-field composite codec.
+   *
+   * @param <A> type of the first field
+   * @param <B> type of the second field
+   * @param <C> type of the third field
+   * @param <D> type of the fourth field
+   * @param <E> type of the fifth field
+   * @param <F> type of the sixth field
+   * @param <G> type of the seventh field
+   * @param <H> type of the eighth field
+   * @param <I> type of the ninth field
+   * @param schema PostgreSQL schema name, or empty/null for default search path
+   * @param name PostgreSQL composite type name
+   * @param construct curried constructor function
+   * @param fieldA first field descriptor
+   * @param fieldB second field descriptor
+   * @param fieldC third field descriptor
+   * @param fieldD fourth field descriptor
+   * @param fieldE fifth field descriptor
+   * @param fieldF sixth field descriptor
+   * @param fieldG seventh field descriptor
+   * @param fieldH eighth field descriptor
+   * @param fieldI ninth field descriptor
+   */
+  @SuppressWarnings("unchecked")
+  public <A, B, C, D, E, F, G, H, I> CompositeCodec(
+      String schema,
+      String name,
+      Function<
+              A,
+              Function<
+                  B,
+                  Function<
+                      C,
+                      Function<
+                          D, Function<E, Function<F, Function<G, Function<H, Function<I, Z>>>>>>>>>
+          construct,
+      Field<Z, A> fieldA,
+      Field<Z, B> fieldB,
+      Field<Z, C> fieldC,
+      Field<Z, D> fieldD,
+      Field<Z, E> fieldE,
+      Field<Z, F> fieldF,
+      Field<Z, G> fieldG,
+      Field<Z, H> fieldH,
+      Field<Z, I> fieldI) {
+    this.schema = schema;
+    this.pgName = name;
+    this.constructor = construct;
+    this.fields =
+        new Field[] {fieldA, fieldB, fieldC, fieldD, fieldE, fieldF, fieldG, fieldH, fieldI};
+    this.vararg = false;
+  }
+
+  /**
+   * Creates a 10-field composite codec.
+   *
+   * @param <A> type of the first field
+   * @param <B> type of the second field
+   * @param <C> type of the third field
+   * @param <D> type of the fourth field
+   * @param <E> type of the fifth field
+   * @param <F> type of the sixth field
+   * @param <G> type of the seventh field
+   * @param <H> type of the eighth field
+   * @param <I> type of the ninth field
+   * @param <J> type of the tenth field
+   * @param schema PostgreSQL schema name, or empty/null for default search path
+   * @param name PostgreSQL composite type name
+   * @param construct curried constructor function
+   * @param fieldA first field descriptor
+   * @param fieldB second field descriptor
+   * @param fieldC third field descriptor
+   * @param fieldD fourth field descriptor
+   * @param fieldE fifth field descriptor
+   * @param fieldF sixth field descriptor
+   * @param fieldG seventh field descriptor
+   * @param fieldH eighth field descriptor
+   * @param fieldI ninth field descriptor
+   * @param fieldJ tenth field descriptor
+   */
+  @SuppressWarnings("unchecked")
+  public <A, B, C, D, E, F, G, H, I, J> CompositeCodec(
+      String schema,
+      String name,
+      Function<
+              A,
+              Function<
+                  B,
+                  Function<
+                      C,
+                      Function<
+                          D,
+                          Function<
+                              E,
+                              Function<
+                                  F, Function<G, Function<H, Function<I, Function<J, Z>>>>>>>>>>
+          construct,
+      Field<Z, A> fieldA,
+      Field<Z, B> fieldB,
+      Field<Z, C> fieldC,
+      Field<Z, D> fieldD,
+      Field<Z, E> fieldE,
+      Field<Z, F> fieldF,
+      Field<Z, G> fieldG,
+      Field<Z, H> fieldH,
+      Field<Z, I> fieldI,
+      Field<Z, J> fieldJ) {
+    this.schema = schema;
+    this.pgName = name;
+    this.constructor = construct;
+    this.fields =
+        new Field[] {
+          fieldA, fieldB, fieldC, fieldD, fieldE, fieldF, fieldG, fieldH, fieldI, fieldJ
+        };
+    this.vararg = false;
+  }
+
+  /**
+   * Creates an 11-field composite codec.
+   *
+   * @param <A> type of the first field
+   * @param <B> type of the second field
+   * @param <C> type of the third field
+   * @param <D> type of the fourth field
+   * @param <E> type of the fifth field
+   * @param <F> type of the sixth field
+   * @param <G> type of the seventh field
+   * @param <H> type of the eighth field
+   * @param <I> type of the ninth field
+   * @param <J> type of the tenth field
+   * @param <K> type of the eleventh field
+   * @param schema PostgreSQL schema name, or empty/null for default search path
+   * @param name PostgreSQL composite type name
+   * @param construct curried constructor function
+   * @param fieldA first field descriptor
+   * @param fieldB second field descriptor
+   * @param fieldC third field descriptor
+   * @param fieldD fourth field descriptor
+   * @param fieldE fifth field descriptor
+   * @param fieldF sixth field descriptor
+   * @param fieldG seventh field descriptor
+   * @param fieldH eighth field descriptor
+   * @param fieldI ninth field descriptor
+   * @param fieldJ tenth field descriptor
+   * @param fieldK eleventh field descriptor
+   */
+  @SuppressWarnings("unchecked")
+  public <A, B, C, D, E, F, G, H, I, J, K> CompositeCodec(
+      String schema,
+      String name,
+      Function<
+              A,
+              Function<
+                  B,
+                  Function<
+                      C,
+                      Function<
+                          D,
+                          Function<
+                              E,
+                              Function<
+                                  F,
+                                  Function<
+                                      G,
+                                      Function<H, Function<I, Function<J, Function<K, Z>>>>>>>>>>>
+          construct,
+      Field<Z, A> fieldA,
+      Field<Z, B> fieldB,
+      Field<Z, C> fieldC,
+      Field<Z, D> fieldD,
+      Field<Z, E> fieldE,
+      Field<Z, F> fieldF,
+      Field<Z, G> fieldG,
+      Field<Z, H> fieldH,
+      Field<Z, I> fieldI,
+      Field<Z, J> fieldJ,
+      Field<Z, K> fieldK) {
+    this.schema = schema;
+    this.pgName = name;
+    this.constructor = construct;
+    this.fields =
+        new Field[] {
+          fieldA, fieldB, fieldC, fieldD, fieldE, fieldF, fieldG, fieldH, fieldI, fieldJ, fieldK
+        };
+    this.vararg = false;
+  }
+
+  /**
+   * Creates a 12-field composite codec.
+   *
+   * @param <A> type of the first field
+   * @param <B> type of the second field
+   * @param <C> type of the third field
+   * @param <D> type of the fourth field
+   * @param <E> type of the fifth field
+   * @param <F> type of the sixth field
+   * @param <G> type of the seventh field
+   * @param <H> type of the eighth field
+   * @param <I> type of the ninth field
+   * @param <J> type of the tenth field
+   * @param <K> type of the eleventh field
+   * @param <L> type of the twelfth field
+   * @param schema PostgreSQL schema name, or empty/null for default search path
+   * @param name PostgreSQL composite type name
+   * @param construct curried constructor function
+   * @param fieldA first field descriptor
+   * @param fieldB second field descriptor
+   * @param fieldC third field descriptor
+   * @param fieldD fourth field descriptor
+   * @param fieldE fifth field descriptor
+   * @param fieldF sixth field descriptor
+   * @param fieldG seventh field descriptor
+   * @param fieldH eighth field descriptor
+   * @param fieldI ninth field descriptor
+   * @param fieldJ tenth field descriptor
+   * @param fieldK eleventh field descriptor
+   * @param fieldL twelfth field descriptor
+   */
+  @SuppressWarnings("unchecked")
+  public <A, B, C, D, E, F, G, H, I, J, K, L> CompositeCodec(
+      String schema,
+      String name,
+      Function<
+              A,
+              Function<
+                  B,
+                  Function<
+                      C,
+                      Function<
+                          D,
+                          Function<
+                              E,
+                              Function<
+                                  F,
+                                  Function<
+                                      G,
+                                      Function<
+                                          H,
+                                          Function<
+                                              I, Function<J, Function<K, Function<L, Z>>>>>>>>>>>>
+          construct,
+      Field<Z, A> fieldA,
+      Field<Z, B> fieldB,
+      Field<Z, C> fieldC,
+      Field<Z, D> fieldD,
+      Field<Z, E> fieldE,
+      Field<Z, F> fieldF,
+      Field<Z, G> fieldG,
+      Field<Z, H> fieldH,
+      Field<Z, I> fieldI,
+      Field<Z, J> fieldJ,
+      Field<Z, K> fieldK,
+      Field<Z, L> fieldL) {
+    this.schema = schema;
+    this.pgName = name;
+    this.constructor = construct;
+    this.fields =
+        new Field[] {
+          fieldA, fieldB, fieldC, fieldD, fieldE, fieldF, fieldG, fieldH, fieldI, fieldJ, fieldK,
+          fieldL
+        };
+    this.vararg = false;
+  }
+
+  /**
+   * Creates a 13-field composite codec.
+   *
+   * @param <A> type of the first field
+   * @param <B> type of the second field
+   * @param <C> type of the third field
+   * @param <D> type of the fourth field
+   * @param <E> type of the fifth field
+   * @param <F> type of the sixth field
+   * @param <G> type of the seventh field
+   * @param <H> type of the eighth field
+   * @param <I> type of the ninth field
+   * @param <J> type of the tenth field
+   * @param <K> type of the eleventh field
+   * @param <L> type of the twelfth field
+   * @param <M> type of the thirteenth field
+   * @param schema PostgreSQL schema name, or empty/null for default search path
+   * @param name PostgreSQL composite type name
+   * @param construct curried constructor function
+   * @param fieldA first field descriptor
+   * @param fieldB second field descriptor
+   * @param fieldC third field descriptor
+   * @param fieldD fourth field descriptor
+   * @param fieldE fifth field descriptor
+   * @param fieldF sixth field descriptor
+   * @param fieldG seventh field descriptor
+   * @param fieldH eighth field descriptor
+   * @param fieldI ninth field descriptor
+   * @param fieldJ tenth field descriptor
+   * @param fieldK eleventh field descriptor
+   * @param fieldL twelfth field descriptor
+   * @param fieldM thirteenth field descriptor
+   */
+  @SuppressWarnings("unchecked")
+  public <A, B, C, D, E, F, G, H, I, J, K, L, M> CompositeCodec(
+      String schema,
+      String name,
+      Function<
+              A,
+              Function<
+                  B,
+                  Function<
+                      C,
+                      Function<
+                          D,
+                          Function<
+                              E,
+                              Function<
+                                  F,
+                                  Function<
+                                      G,
+                                      Function<
+                                          H,
+                                          Function<
+                                              I,
+                                              Function<
+                                                  J,
+                                                  Function<K, Function<L, Function<M, Z>>>>>>>>>>>>>
+          construct,
+      Field<Z, A> fieldA,
+      Field<Z, B> fieldB,
+      Field<Z, C> fieldC,
+      Field<Z, D> fieldD,
+      Field<Z, E> fieldE,
+      Field<Z, F> fieldF,
+      Field<Z, G> fieldG,
+      Field<Z, H> fieldH,
+      Field<Z, I> fieldI,
+      Field<Z, J> fieldJ,
+      Field<Z, K> fieldK,
+      Field<Z, L> fieldL,
+      Field<Z, M> fieldM) {
+    this.schema = schema;
+    this.pgName = name;
+    this.constructor = construct;
+    this.fields =
+        new Field[] {
+          fieldA, fieldB, fieldC, fieldD, fieldE, fieldF, fieldG, fieldH, fieldI, fieldJ, fieldK,
+          fieldL, fieldM
+        };
+    this.vararg = false;
+  }
+
+  /**
+   * Creates a 14-field composite codec.
+   *
+   * @param <A> type of the first field
+   * @param <B> type of the second field
+   * @param <C> type of the third field
+   * @param <D> type of the fourth field
+   * @param <E> type of the fifth field
+   * @param <F> type of the sixth field
+   * @param <G> type of the seventh field
+   * @param <H> type of the eighth field
+   * @param <I> type of the ninth field
+   * @param <J> type of the tenth field
+   * @param <K> type of the eleventh field
+   * @param <L> type of the twelfth field
+   * @param <M> type of the thirteenth field
+   * @param <N> type of the fourteenth field
+   * @param schema PostgreSQL schema name, or empty/null for default search path
+   * @param name PostgreSQL composite type name
+   * @param construct curried constructor function
+   * @param fieldA first field descriptor
+   * @param fieldB second field descriptor
+   * @param fieldC third field descriptor
+   * @param fieldD fourth field descriptor
+   * @param fieldE fifth field descriptor
+   * @param fieldF sixth field descriptor
+   * @param fieldG seventh field descriptor
+   * @param fieldH eighth field descriptor
+   * @param fieldI ninth field descriptor
+   * @param fieldJ tenth field descriptor
+   * @param fieldK eleventh field descriptor
+   * @param fieldL twelfth field descriptor
+   * @param fieldM thirteenth field descriptor
+   * @param fieldN fourteenth field descriptor
+   */
+  @SuppressWarnings("unchecked")
+  public <A, B, C, D, E, F, G, H, I, J, K, L, M, N> CompositeCodec(
+      String schema,
+      String name,
+      Function<
+              A,
+              Function<
+                  B,
+                  Function<
+                      C,
+                      Function<
+                          D,
+                          Function<
+                              E,
+                              Function<
+                                  F,
+                                  Function<
+                                      G,
+                                      Function<
+                                          H,
+                                          Function<
+                                              I,
+                                              Function<
+                                                  J,
+                                                  Function<
+                                                      K,
+                                                      Function<
+                                                          L, Function<M, Function<N, Z>>>>>>>>>>>>>>
+          construct,
+      Field<Z, A> fieldA,
+      Field<Z, B> fieldB,
+      Field<Z, C> fieldC,
+      Field<Z, D> fieldD,
+      Field<Z, E> fieldE,
+      Field<Z, F> fieldF,
+      Field<Z, G> fieldG,
+      Field<Z, H> fieldH,
+      Field<Z, I> fieldI,
+      Field<Z, J> fieldJ,
+      Field<Z, K> fieldK,
+      Field<Z, L> fieldL,
+      Field<Z, M> fieldM,
+      Field<Z, N> fieldN) {
+    this.schema = schema;
+    this.pgName = name;
+    this.constructor = construct;
+    this.fields =
+        new Field[] {
+          fieldA, fieldB, fieldC, fieldD, fieldE, fieldF, fieldG, fieldH, fieldI, fieldJ, fieldK,
+          fieldL, fieldM, fieldN
+        };
+    this.vararg = false;
+  }
+
+  /**
+   * Creates a composite codec for any number of fields using an untyped vararg array constructor.
+   *
+   * <p>This constructor is intended for composite types with more than 14 fields, or whenever the
+   * fully-typed curried constructors are impractical. The {@code construct} function receives an
+   * {@code Object[]} whose elements correspond positionally to the supplied field descriptors.
+   *
+   * <p><b>Note:</b> this constructor is less safely typed than the arity-specific overloads.
+   * Callers are responsible for casting elements of the array to the correct types.
+   *
+   * @param schema PostgreSQL schema name, or empty/null for default search path
+   * @param name PostgreSQL composite type name
+   * @param construct function that maps an {@code Object[]} of decoded field values to {@code Z}
+   * @param fields field descriptors in declaration order
+   */
+  @SafeVarargs
+  @SuppressWarnings("unchecked")
+  public CompositeCodec(
+      String schema, String name, Function<Object[], Z> construct, Field<Z, ?>... fields) {
+    this.schema = schema;
+    this.pgName = name;
+    this.constructor = construct;
+    this.fields = fields;
+    this.vararg = true;
   }
 
   @Override
@@ -209,7 +804,7 @@ public final class CompositeCodec<Z> implements Codec<Z> {
       throw new Codec.DecodingException(input, offset, "Expected '(' to open composite " + pgName);
     }
     int i = offset + 1; // skip '('
-    Object fn = constructor;
+    Object[] values = new Object[fields.length];
     for (int fieldIdx = 0; fieldIdx < fields.length; fieldIdx++) {
       if (fieldIdx > 0) {
         if (i >= len || input.charAt(i) != ',') {
@@ -220,7 +815,7 @@ public final class CompositeCodec<Z> implements Codec<Z> {
       }
       if (i >= len || input.charAt(i) == ',' || input.charAt(i) == ')') {
         // NULL field
-        fn = ((Function<Object, Object>) fn).apply(null);
+        values[fieldIdx] = null;
       } else if (input.charAt(i) == '"') {
         // Quoted field — unescape into a StringBuilder and parse it directly
         i++; // skip opening '"'
@@ -253,24 +848,23 @@ public final class CompositeCodec<Z> implements Codec<Z> {
             }
           }
         }
-        var result = ((Codec<Object>) fields[fieldIdx].codec).decodeInText(sb, 0);
-        fn = ((Function<Object, Object>) fn).apply(result.value);
+        values[fieldIdx] = ((Codec<Object>) fields[fieldIdx].codec).decodeInText(sb, 0).value;
       } else {
         // Unquoted field — pass a subSequence bounded to this field
         int fieldStart = i;
         while (i < len && input.charAt(i) != ',' && input.charAt(i) != ')') {
           i++;
         }
-        var result =
+        values[fieldIdx] =
             ((Codec<Object>) fields[fieldIdx].codec)
-                .decodeInText(input.subSequence(fieldStart, i), 0);
-        fn = ((Function<Object, Object>) fn).apply(result.value);
+                .decodeInText(input.subSequence(fieldStart, i), 0)
+                .value;
       }
     }
     if (i >= len || input.charAt(i) != ')') {
       throw new Codec.DecodingException(input, i, "Expected ')' to close composite " + pgName);
     }
-    return new Codec.ParsingResult<>((Z) fn, i + 1);
+    return new Codec.ParsingResult<>(applyConstructor(values), i + 1);
   }
 
   // -----------------------------------------------------------------------
@@ -332,9 +926,9 @@ public final class CompositeCodec<Z> implements Codec<Z> {
               + fieldCount);
     }
 
-    Object fn = constructor;
-    for (var f : fields) {
-      var field = (Field<Z, Object>) f;
+    Object[] values = new Object[fields.length];
+    for (int fieldIdx = 0; fieldIdx < fields.length; fieldIdx++) {
+      var field = (Field<Z, Object>) fields[fieldIdx];
       int fieldOid = buf.getInt();
       int expectedFieldOid = field.codec.oid();
       if (expectedFieldOid != 0 && fieldOid != expectedFieldOid) {
@@ -350,25 +944,36 @@ public final class CompositeCodec<Z> implements Codec<Z> {
       }
       int fieldLen = buf.getInt();
       if (fieldLen == -1) {
-        fn = ((Function<Object, Object>) fn).apply(null);
+        values[fieldIdx] = null;
       } else {
-        Object fieldValue = ((Codec<Object>) field.codec).decodeInBinary(buf, fieldLen);
-        fn = ((Function<Object, Object>) fn).apply(fieldValue);
+        values[fieldIdx] = ((Codec<Object>) field.codec).decodeInBinary(buf, fieldLen);
       }
     }
-    return (Z) fn;
+    return applyConstructor(values);
   }
 
   @Override
   @SuppressWarnings("unchecked")
   public Z random(Random r, int size) {
-    Object fn = constructor;
-    for (var f : fields) {
-      var field = (Field<Z, Object>) f;
-      Object randomValue = ((Codec<Object>) field.codec).random(r, size);
-      fn = ((Function<Object, Object>) fn).apply(randomValue);
+    Object[] values = new Object[fields.length];
+    for (int i = 0; i < fields.length; i++) {
+      var field = (Field<Z, Object>) fields[i];
+      values[i] = ((Codec<Object>) field.codec).random(r, size);
     }
-    return (Z) fn;
+    return applyConstructor(values);
+  }
+
+  @SuppressWarnings("unchecked")
+  private Z applyConstructor(Object[] values) {
+    if (vararg) {
+      return ((Function<Object[], Z>) constructor).apply(values);
+    } else {
+      Object fn = constructor;
+      for (Object v : values) {
+        fn = ((Function<Object, Object>) fn).apply(v);
+      }
+      return (Z) fn;
+    }
   }
 
   /**
