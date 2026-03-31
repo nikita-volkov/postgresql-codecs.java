@@ -11,11 +11,17 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     permissions:
       contents: write
       packages: write
       pages: write
       id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Validate SemVer version format
@@ -44,12 +50,74 @@ jobs:
       - name: Generate documentation site
         run: mvn site -DskipTests
 
-      - name: Upload site
+      - name: Checkout gh-pages branch
+        id: checkout-pages
+        uses: actions/checkout@v6
+        with:
+          ref: gh-pages
+          path: _site
+          token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Initialize site directory
+        if: steps.checkout-pages.outcome == 'failure'
+        run: |
+          mkdir -p _site
+          cd _site
+          git init
+          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git checkout -b gh-pages
+
+      - name: Update version docs
+        run: |
+          rm -rf _site/v${{ inputs.version }}
+          cp -r target/site _site/v${{ inputs.version }}
+
+      - name: Generate index page
+        run: |
+          {
+            echo '<!DOCTYPE html>'
+            echo '<html lang="en">'
+            echo '<head>'
+            echo '  <meta charset="UTF-8">'
+            echo '  <meta name="viewport" content="width=device-width, initial-scale=1.0">'
+            echo '  <title>PostgreSQL Codecs — Documentation</title>'
+            echo '  <style>body{font-family:sans-serif;max-width:800px;margin:2em auto;padding:0 1em}ul{line-height:2}</style>'
+            echo '</head>'
+            echo '<body>'
+            echo '  <h1>PostgreSQL Codecs Documentation</h1>'
+            echo '  <p>Select a version to view its documentation:</p>'
+            echo '  <ul>'
+            [ -d _site/latest ] && echo '    <li><a href="latest/">latest</a></li>'
+            for d in $(ls -1d _site/v*/ 2>/dev/null | sort -rV); do
+              v=$(basename "$d")
+              echo "    <li><a href=\"$v/\">$v</a></li>"
+            done
+            echo '  </ul>'
+            echo '</body>'
+            echo '</html>'
+          } > _site/index.html
+
+      - name: Commit and push site updates
+        run: |
+          cd _site
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git rev-parse HEAD >/dev/null 2>&1; then
+            git diff-index --quiet HEAD || git commit -m "Deploy docs for v${{ inputs.version }}"
+          else
+            git commit -m "Initialize GitHub Pages with v${{ inputs.version }} docs"
+          fi
+          git push origin HEAD:gh-pages
+
+      - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: target/site
+          path: _site
 
       - name: Deploy site to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v4
 
       - name: Publish to GitHub Packages
@@ -65,6 +133,15 @@ jobs:
           file_pattern: pom.xml
 
       - name: Create GitHub release
-        run: gh release create "v${{ inputs.version }}" --title "v${{ inputs.version }}" --generate-notes --target ${{ steps.commit.outputs.commit_hash }}
+        run: |
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.repository }}"
+          REPO_NAME="${REPO#*/}"
+          DOCS_URL="https://${OWNER}.github.io/${REPO_NAME}/v${{ inputs.version }}/"
+          gh release create "v${{ inputs.version }}" --title "v${{ inputs.version }}" --generate-notes --target ${{ steps.commit.outputs.commit_hash }}
+          NOTES=$(gh release view "v${{ inputs.version }}" --json body --jq .body)
+          gh release edit "v${{ inputs.version }}" --notes "${NOTES}
+          ## Documentation
+          [View documentation for v${{ inputs.version }}](${DOCS_URL})"
         env:
           GH_TOKEN: ${{ github.token }}

@@ -29,3 +29,101 @@ jobs:
 
       - name: Validate documentation
         run: mvn site -DskipTests
+
+  deploy-docs:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      - name: Generate documentation site
+        run: mvn site -DskipTests
+
+      - name: Checkout gh-pages branch
+        id: checkout-pages
+        uses: actions/checkout@v6
+        with:
+          ref: gh-pages
+          path: _site
+          token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: Initialize site directory
+        if: steps.checkout-pages.outcome == 'failure'
+        run: |
+          mkdir -p _site
+          cd _site
+          git init
+          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git checkout -b gh-pages
+
+      - name: Update latest docs
+        run: |
+          rm -rf _site/latest
+          cp -r target/site _site/latest
+
+      - name: Generate index page
+        run: |
+          {
+            echo '<!DOCTYPE html>'
+            echo '<html lang="en">'
+            echo '<head>'
+            echo '  <meta charset="UTF-8">'
+            echo '  <meta name="viewport" content="width=device-width, initial-scale=1.0">'
+            echo '  <title>PostgreSQL Codecs — Documentation</title>'
+            echo '  <style>body{font-family:sans-serif;max-width:800px;margin:2em auto;padding:0 1em}ul{line-height:2}</style>'
+            echo '</head>'
+            echo '<body>'
+            echo '  <h1>PostgreSQL Codecs Documentation</h1>'
+            echo '  <p>Select a version to view its documentation:</p>'
+            echo '  <ul>'
+            [ -d _site/latest ] && echo '    <li><a href="latest/">latest</a></li>'
+            for d in $(ls -1d _site/v*/ 2>/dev/null | sort -rV); do
+              v=$(basename "$d")
+              echo "    <li><a href=\"$v/\">$v</a></li>"
+            done
+            echo '  </ul>'
+            echo '</body>'
+            echo '</html>'
+          } > _site/index.html
+
+      - name: Commit and push site updates
+        run: |
+          cd _site
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git rev-parse HEAD >/dev/null 2>&1; then
+            git diff-index --quiet HEAD || git commit -m "Update latest docs from ${{ github.sha }}"
+          else
+            git commit -m "Initialize GitHub Pages with latest docs"
+          fi
+          git push origin HEAD:gh-pages
+
+      - name: Upload pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
