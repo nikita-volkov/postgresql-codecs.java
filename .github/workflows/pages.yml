@@ -25,13 +25,16 @@ jobs:
 
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
 
-          # Build version list items
-          VERSION_ITEMS=""
+          # Build version list items for mvn and javadoc sections
+          MVN_ITEMS=""
+          JAVADOC_ITEMS=""
           if [ -d "latest" ]; then
-            VERSION_ITEMS+='<li><a href="latest/">latest <span class="badge">development</span></a></li>'
+            MVN_ITEMS+='<li><a href="latest/">latest <span class="badge">development</span></a></li>'
+            JAVADOC_ITEMS+='<li><a href="latest/apidocs/">latest <span class="badge">development</span></a></li>'
           fi
           for dir in $(find . -maxdepth 1 -type d -regex '\./v[0-9].*' | sed 's|^\./||' | sort -V -r); do
-            VERSION_ITEMS+="<li><a href=\"${dir}/\">${dir}</a></li>"
+            MVN_ITEMS+="<li><a href=\"${dir}/\">${dir}</a></li>"
+            JAVADOC_ITEMS+="<li><a href=\"${dir}/apidocs/\">${dir}</a></li>"
           done
 
           cat > index.html <<ENDOFPAGE
@@ -82,10 +85,23 @@ jobs:
           }
           h1 { font-size: 3rem; color: var(--fg-bright); letter-spacing: -1px; margin-bottom: .5rem; }
           .subtitle { font-size: 1.4rem; color: #999; margin-bottom: 3rem; }
+          .sections {
+            display: flex;
+            gap: 2rem;
+            justify-content: center;
+            flex-wrap: wrap;
+          }
+          .section { flex: 1; min-width: 200px; max-width: 340px; }
+          .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: #888;
+            margin-bottom: 1rem;
+          }
           ul {
             list-style: none;
-            max-width: 400px;
-            margin: 0 auto;
           }
           li { margin: .5rem 0; }
           li a {
@@ -117,9 +133,20 @@ jobs:
           <main>
           <h1>${REPO_NAME}</h1>
           <p class="subtitle">Documentation</p>
+          <div class="sections">
+          <div class="section">
+          <p class="section-title">mvn</p>
           <ul>
-          ${VERSION_ITEMS}
+          ${MVN_ITEMS}
           </ul>
+          </div>
+          <div class="section">
+          <p class="section-title">javadoc</p>
+          <ul>
+          ${JAVADOC_ITEMS}
+          </ul>
+          </div>
+          </div>
           </main>
           </body>
           </html>
