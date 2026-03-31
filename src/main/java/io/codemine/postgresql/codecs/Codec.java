@@ -64,6 +64,7 @@ public interface Codec<A> {
   Codec<Macaddr8> MACADDR8 = new Macaddr8Codec();
   Codec<Bit> BIT = new BitCodec();
   Codec<Bit> VARBIT = new VarbitCodec();
+  Codec<String> CITEXT = new CitextCodec();
 
   /**
    * Returns a codec for PostgreSQL {@code bit(n)} — a fixed-length bit string of exactly {@code n}
