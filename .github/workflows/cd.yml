@@ -42,10 +42,10 @@ jobs:
       - name: Generate documentation site
         run: mvn site -DskipTests
 
-      - name: Deploy documentation to /${{ inputs.version }}
+      - name: Deploy documentation to /v${{ inputs.version }}
         uses: ./.github/actions/deploy-docs
         with:
-          subdirectory: ${{ inputs.version }}
+          subdirectory: v${{ inputs.version }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to GitHub Packages
@@ -64,14 +64,13 @@ jobs:
         id: docs-url
         run: |
           PAGES_URL="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}"
-          echo "url=${PAGES_URL}/${{ inputs.version }}/" >> "$GITHUB_OUTPUT"
+          echo "url=${PAGES_URL}/v${{ inputs.version }}/" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub release
         run: |
           gh release create "v${{ inputs.version }}" \
             --title "v${{ inputs.version }}" \
             --notes "📖 [Documentation](${{ steps.docs-url.outputs.url }})" \
-            --generate-notes \
             --target ${{ steps.commit.outputs.commit_hash }}
         env:
           GH_TOKEN: ${{ github.token }}
