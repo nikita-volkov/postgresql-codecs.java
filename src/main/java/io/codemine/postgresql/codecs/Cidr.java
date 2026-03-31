@@ -27,7 +27,7 @@ public sealed interface Cidr permits Cidr.V4, Cidr.V6 {
   record V4(int address, byte netmask) implements Cidr {
 
     /**
-     * Canonical constructor that enforces the documented invariants:
+     * Canonical constructor that enforces the documented invariants.
      *
      * <ul>
      *   <li>{@code netmask} must be in the range 0–32 (inclusive)
@@ -96,7 +96,7 @@ public sealed interface Cidr permits Cidr.V4, Cidr.V6 {
   record V6(int w1, int w2, int w3, int w4, byte netmask) implements Cidr {
 
     /**
-     * Canonical constructor that enforces the documented invariants:
+     * Canonical constructor that enforces the documented invariants.
      *
      * <ul>
      *   <li>{@code netmask} must be in the range 0–128 (inclusive)
