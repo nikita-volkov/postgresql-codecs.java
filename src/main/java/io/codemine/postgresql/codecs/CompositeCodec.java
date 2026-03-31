@@ -167,7 +167,34 @@ public final class CompositeCodec<Z> implements Codec<Z> {
       if (fieldValue != null) {
         var fieldSb = new StringBuilder();
         field.codec.write(fieldSb, fieldValue);
-        writeQuotedField(sb, fieldSb);
+        int len = fieldSb.length();
+        if (len == 0) {
+          sb.append("\"\"");
+        } else {
+          boolean needsQuoting = false;
+          for (int j = 0; j < len; j++) {
+            char c = fieldSb.charAt(j);
+            if (c == ',' || c == '(' || c == ')' || c == '"' || c == '\\' || c == ' ' || c == '\t'
+                || c == '\n' || c == '\r') {
+              needsQuoting = true;
+              break;
+            }
+          }
+          if (!needsQuoting) {
+            sb.append(fieldSb);
+          } else {
+            sb.append('"');
+            for (int j = 0; j < len; j++) {
+              char c = fieldSb.charAt(j);
+              switch (c) {
+                case '"' -> sb.append("\"\"");
+                case '\\' -> sb.append("\\\\");
+                default -> sb.append(c);
+              }
+            }
+            sb.append('"');
+          }
+        }
       }
     }
     sb.append(')');
@@ -198,27 +225,32 @@ public final class CompositeCodec<Z> implements Codec<Z> {
         // Quoted field — unescape into a StringBuilder and parse it directly
         i++; // skip opening '"'
         var sb = new StringBuilder();
+        quoteLoop:
         while (i < len) {
           char c = input.charAt(i);
-          if (c == '"') {
-            if (i + 1 < len && input.charAt(i + 1) == '"') {
-              sb.append('"');
-              i += 2;
-            } else {
-              i++; // skip closing '"'
-              break;
+          switch (c) {
+            case '"' -> {
+              if (i + 1 < len && input.charAt(i + 1) == '"') {
+                sb.append('"');
+                i += 2;
+              } else {
+                i++; // skip closing '"'
+                break quoteLoop;
+              }
             }
-          } else if (c == '\\') {
-            if (i + 1 < len) {
-              sb.append(input.charAt(i + 1));
-              i += 2;
-            } else {
+            case '\\' -> {
+              if (i + 1 < len) {
+                sb.append(input.charAt(i + 1));
+                i += 2;
+              } else {
+                sb.append(c);
+                i++;
+              }
+            }
+            default -> {
               sb.append(c);
               i++;
             }
-          } else {
-            sb.append(c);
-            i++;
           }
         }
         var result = ((Codec<Object>) fields[fieldIdx].codec).parse(sb, 0);
@@ -300,13 +332,14 @@ public final class CompositeCodec<Z> implements Codec<Z> {
     }
 
     Object fn = constructor;
-    for (int i = 0; i < fields.length; i++) {
-      int fieldOid = buf.getInt(); // OID — informational, not validated
+    for (var f : fields) {
+      buf.getInt(); // OID — informational, not validated
       int fieldLen = buf.getInt();
       if (fieldLen == -1) {
         fn = ((Function<Object, Object>) fn).apply(null);
       } else {
-        Object fieldValue = ((Codec<Object>) fields[i].codec).decodeInBinary(buf, fieldLen);
+        var field = (Field<Z, Object>) f;
+        Object fieldValue = ((Codec<Object>) field.codec).decodeInBinary(buf, fieldLen);
         fn = ((Function<Object, Object>) fn).apply(fieldValue);
       }
     }
@@ -350,64 +383,20 @@ public final class CompositeCodec<Z> implements Codec<Z> {
       } else {
         var fieldSb = new StringBuilder();
         field.codec.write(fieldSb, fieldValue);
-        writeRowLiteral(sb, fieldSb);
+        sb.append('\'');
+        int len = fieldSb.length();
+        for (int j = 0; j < len; j++) {
+          char c = fieldSb.charAt(j);
+          if (c == '\'') {
+            sb.append("''");
+          } else {
+            sb.append(c);
+          }
+        }
+        sb.append('\'');
       }
     }
     sb.append(')');
-  }
-
-  // ---------------------------------------------------------------------------
-  // PostgreSQL composite text format helpers
-  // ---------------------------------------------------------------------------
-  private static void writeQuotedField(StringBuilder sb, StringBuilder fieldText) {
-    int len = fieldText.length();
-    if (len == 0) {
-      sb.append("\"\"");
-      return;
-    }
-    boolean needsQuoting = false;
-    for (int i = 0; i < len; i++) {
-      char c = fieldText.charAt(i);
-      if (c == ',' || c == '(' || c == ')' || c == '"' || c == '\\' || c == ' ' || c == '\t'
-          || c == '\n' || c == '\r') {
-        needsQuoting = true;
-        break;
-      }
-    }
-    if (!needsQuoting) {
-      sb.append(fieldText);
-      return;
-    }
-    sb.append('"');
-    for (int i = 0; i < len; i++) {
-      char c = fieldText.charAt(i);
-      if (c == '"') {
-        sb.append("\"\"");
-      } else if (c == '\\') {
-        sb.append("\\\\");
-      } else {
-        sb.append(c);
-      }
-    }
-    sb.append('"');
-  }
-
-  /**
-   * Writes a scalar literal in the row(...) syntax context. Single-quotes the value and escapes
-   * embedded single quotes by doubling them.
-   */
-  private static void writeRowLiteral(StringBuilder sb, StringBuilder fieldText) {
-    sb.append('\'');
-    int len = fieldText.length();
-    for (int i = 0; i < len; i++) {
-      char c = fieldText.charAt(i);
-      if (c == '\'') {
-        sb.append("''");
-      } else {
-        sb.append(c);
-      }
-    }
-    sb.append('\'');
   }
 
   /**
