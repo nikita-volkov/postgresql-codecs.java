@@ -10,11 +10,13 @@ final class BitCodec implements Codec<Bit> {
   private final int size;
 
   BitCodec() {
-    this(0);
+    this(1);
   }
 
   BitCodec(int size) {
-    if (size < 0) throw new IllegalArgumentException("size must be >= 0, got: " + size);
+    if (size < 0) {
+      throw new IllegalArgumentException("size must be >= 0, got: " + size);
+    }
     this.size = size;
   }
 

@@ -15,7 +15,9 @@ final class VarcharCodec implements Codec<String> {
   }
 
   VarcharCodec(int maxSize) {
-    if (maxSize < 0) throw new IllegalArgumentException("maxSize must be >= 0, got: " + maxSize);
+    if (maxSize < 0) {
+      throw new IllegalArgumentException("maxSize must be >= 0, got: " + maxSize);
+    }
     this.maxSize = maxSize;
   }
 

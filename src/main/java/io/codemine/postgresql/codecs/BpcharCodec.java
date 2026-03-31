@@ -15,7 +15,9 @@ final class BpcharCodec implements Codec<String> {
   }
 
   BpcharCodec(int size) {
-    if (size < 0) throw new IllegalArgumentException("size must be >= 0, got: " + size);
+    if (size < 0) {
+      throw new IllegalArgumentException("size must be >= 0, got: " + size);
+    }
     this.size = size;
   }
 

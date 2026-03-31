@@ -305,7 +305,7 @@ abstract class CodecITBase<A> {
     try (var ps = pgjdbcConnection.prepareStatement("SELECT ?")) {
       if (value != null) {
         PGobject obj = new PGobject();
-        obj.setType(codec.pgjdbcTypeSig());
+        obj.setType(qualifiedCodecName(codec));
         {
           StringBuilder sb = new StringBuilder();
           codec.encodeInText(sb, value);
@@ -368,7 +368,7 @@ abstract class CodecITBase<A> {
     try (var ps = pgjdbcConnection.prepareStatement("SELECT ?")) {
       if (value != null) {
         PGobject obj = new PGobject();
-        obj.setType(arrayCodec.pgjdbcTypeSig());
+        obj.setType(qualifiedCodecName(arrayCodec));
         {
           StringBuilder sb = new StringBuilder();
           arrayCodec.encodeInText(sb, value);
@@ -393,5 +393,17 @@ abstract class CodecITBase<A> {
       assertEquals(
           value, decoded, "decode mismatch for " + arrayCodec.typeSig() + " value=" + value);
     }
+  }
+
+  private static String qualifiedCodecName(Codec codec) {
+    StringBuilder sb = new StringBuilder();
+    if (codec.schema() != null && !codec.schema().isEmpty()) {
+      sb.append(codec.schema()).append(".");
+    }
+    sb.append(codec.name());
+    for (int i = 0; i < codec.dimensions(); i++) {
+      sb.append("[]");
+    }
+    return sb.toString();
   }
 }

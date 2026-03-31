@@ -149,28 +149,6 @@ public interface Codec<A> {
   }
 
   /**
-   * Returns the PostgreSQL type name in a form accepted by pgjdbc's {@link
-   * org.postgresql.util.PGobject#setType PGobject.setType}: the base type name without any size
-   * modifier, prefixed with the schema (if any) and suffixed with one {@code []} per array
-   * dimension.
-   *
-   * <p>Unlike {@link #typeSig()}, this method never includes length/precision modifiers such as
-   * {@code (8)} or {@code (255)}, because pgjdbc resolves the type by looking up {@code
-   * pg_type.typname}, which stores only the bare base name.
-   */
-  default String pgjdbcTypeSig() {
-    StringBuilder sb = new StringBuilder();
-    if (schema() != null && !schema().isEmpty()) {
-      sb.append(schema()).append(".");
-    }
-    sb.append(name());
-    for (int i = 0; i < dimensions(); i++) {
-      sb.append("[]");
-    }
-    return sb.toString();
-  }
-
-  /**
    * Returns an array codec whose element type is this codec. The returned codec uses PostgreSQL's
    * array literal syntax ({@code {elem1,elem2,...}} or {@code {elem1;elem2;...}}) for text format
    * and the standard binary array header for binary format.

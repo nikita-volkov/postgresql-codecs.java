@@ -14,7 +14,9 @@ final class VarbitCodec implements Codec<Bit> {
   }
 
   VarbitCodec(int maxSize) {
-    if (maxSize < 0) throw new IllegalArgumentException("maxSize must be >= 0, got: " + maxSize);
+    if (maxSize < 0) {
+      throw new IllegalArgumentException("maxSize must be >= 0, got: " + maxSize);
+    }
     this.maxSize = maxSize;
   }
 
