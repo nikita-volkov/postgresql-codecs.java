@@ -1,11 +1,10 @@
 name: Deploy Documentation
 description: >
-  Deploy Maven site documentation to a subdirectory on GitHub Pages
-  and regenerate the root version index page.
+  Deploy Maven site documentation to a subdirectory on the gh-pages branch.
 
 inputs:
   subdirectory:
-    description: Target subdirectory on GitHub Pages (e.g., 'latest' or '1.0.0')
+    description: Target subdirectory on gh-pages (e.g., 'latest' or 'v1.0.0')
     required: true
   token:
     description: GitHub token for pushing to gh-pages branch
@@ -42,111 +41,8 @@ runs:
         rm -rf "${DEPLOY_DIR:?}/${SUBDIRECTORY}"
         cp -r "$SITE_SOURCE" "${DEPLOY_DIR}/${SUBDIRECTORY}"
 
-        # Generate root index.html listing all documentation versions
-        cd "$DEPLOY_DIR"
-        REPO_NAME="${GITHUB_REPOSITORY#*/}"
-
-        # Build version list items
-        VERSION_ITEMS=""
-        if [ -d "latest" ]; then
-          VERSION_ITEMS+='<li><a href="latest/">latest <span class="badge">development</span></a></li>'
-        fi
-        for dir in $(find . -maxdepth 1 -type d -regex '\./[0-9].*' | sed 's|^\./||' | sort -V -r); do
-          VERSION_ITEMS+="<li><a href=\"${dir}/\">${dir}</a></li>"
-        done
-
-        cat > index.html <<ENDOFPAGE
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${REPO_NAME} — Documentation</title>
-        <style>
-        :root {
-          --bg: #1a1a1a;
-          --bg-alt: #1d1d1d;
-          --fg: #e0e0e0;
-          --fg-bright: #f4f2f2;
-          --accent: #c8ffe9;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-          line-height: 1.6;
-          background: var(--bg);
-          color: var(--fg);
-        }
-        nav {
-          display: flex;
-          justify-content: center;
-          padding: 1rem 0;
-          background: var(--bg-alt);
-          box-shadow: 0 1px 2px rgba(0,0,0,.1);
-        }
-        nav .logo { 
-          font-size: 1.5rem;
-          color: var(--fg);
-        }
-        nav .logo a { 
-          color: inherit;
-          text-decoration: inherit;
-        }
-        nav .logo a:hover {
-          color: var(--fg-bright);
-        }
-        main {
-          max-width: 800px;
-          margin: 6rem auto;
-          padding: 0 1rem;
-          text-align: center;
-        }
-        h1 { font-size: 3rem; color: var(--fg-bright); letter-spacing: -1px; margin-bottom: .5rem; }
-        .subtitle { font-size: 1.4rem; color: #999; margin-bottom: 3rem; }
-        ul {
-          list-style: none;
-          max-width: 400px;
-          margin: 0 auto;
-        }
-        li { margin: .5rem 0; }
-        li a {
-          display: block;
-          padding: .9rem 1.5rem;
-          border: 1px solid rgba(255,255,255,.1);
-          border-radius: 8px;
-          color: var(--accent);
-          text-decoration: none;
-          font-size: 1.2rem;
-          transition: all .2s ease;
-        }
-        li a:hover { background: var(--bg-alt); border-color: var(--accent); }
-        .badge {
-          font-size: .75rem;
-          background: var(--accent);
-          color: var(--bg);
-          padding: .15rem .5rem;
-          border-radius: 4px;
-          margin-left: .5rem;
-          vertical-align: middle;
-          font-weight: 600;
-        }
-        @media (max-width: 768px) { h1 { font-size: 2rem; } main { margin: 3rem auto; } }
-        </style>
-        </head>
-        <body>
-        <nav><div class="logo"><a href="/">codemine.io</a></div></nav>
-        <main>
-        <h1>${REPO_NAME}</h1>
-        <p class="subtitle">Documentation</p>
-        <ul>
-        ${VERSION_ITEMS}
-        </ul>
-        </main>
-        </body>
-        </html>
-        ENDOFPAGE
-
         # Commit and push
+        cd "$DEPLOY_DIR"
         git add -A
         if ! git diff --cached --quiet; then
           git commit -m "Deploy documentation to /${SUBDIRECTORY}"
