@@ -2,6 +2,7 @@ package io.codemine.postgresql.codecs;
 
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
+import java.util.Comparator;
 import java.util.Random;
 
 /**
@@ -16,15 +17,32 @@ import java.util.Random;
 final class RangeCodec<A> implements Codec<Range<A>> {
 
   private final Codec<A> elementCodec;
+  private final Comparator<A> comparator;
   private final String typeName;
   private final int scalarOid;
   private final int arrayOid;
 
-  RangeCodec(Codec<A> elementCodec, String typeName, int scalarOid, int arrayOid) {
+  RangeCodec(
+      Codec<A> elementCodec,
+      Comparator<A> comparator,
+      String typeName,
+      int scalarOid,
+      int arrayOid) {
     this.elementCodec = elementCodec;
+    this.comparator = comparator;
     this.typeName = typeName;
     this.scalarOid = scalarOid;
     this.arrayOid = arrayOid;
+  }
+
+  /** Returns the element codec. */
+  Codec<A> elementCodec() {
+    return elementCodec;
+  }
+
+  /** Returns the comparator used to order elements of this range. */
+  Comparator<A> comparator() {
+    return comparator;
   }
 
   @Override
@@ -265,7 +283,7 @@ final class RangeCodec<A> implements Codec<Range<A>> {
     if (size == 0) {
       return Range.empty();
     }
-    // 10% chance of empty, 10% chance of unbounded, 80% chance of bounded
+    // 10% chance of empty, 10% chance of fully-unbounded, 80% bounded
     int choice = r.nextInt(10);
     if (choice == 0) {
       return Range.empty();
@@ -274,12 +292,25 @@ final class RangeCodec<A> implements Codec<Range<A>> {
       return Range.unbounded();
     }
 
-    // Generate bounded range with various combinations
     boolean lowerInfinite = r.nextInt(10) == 0;
     boolean upperInfinite = r.nextInt(10) == 0;
 
     A lower = lowerInfinite ? null : elementCodec.random(r, size);
     A upper = upperInfinite ? null : elementCodec.random(r, size);
+
+    // Ensure lower <= upper; if equal, canonicalize to empty.
+    if (!lowerInfinite && !upperInfinite) {
+      int cmp = comparator.compare(lower, upper);
+      if (cmp == 0) {
+        return Range.empty();
+      }
+      if (cmp > 0) {
+        // Swap so that lower < upper.
+        A tmp = lower;
+        lower = upper;
+        upper = tmp;
+      }
+    }
 
     return Range.bounded(lower, upper);
   }

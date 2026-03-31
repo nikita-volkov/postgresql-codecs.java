@@ -3,6 +3,7 @@ package io.codemine.postgresql.codecs;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Function;
@@ -67,26 +68,36 @@ public interface Codec<A> {
   Codec<String> CITEXT = new CitextCodec();
   Codec<Tsvector> TSVECTOR = new TsvectorCodec();
   Codec<Hstore> HSTORE = new HstoreCodec();
-  Codec<Range<Integer>> INT4RANGE = new RangeCodec<>(INT4, "int4range", 3904, 3905);
-  Codec<Range<Long>> INT8RANGE = new RangeCodec<>(INT8, "int8range", 3926, 3927);
-  Codec<Range<java.math.BigDecimal>> NUMRANGE = new RangeCodec<>(NUMERIC, "numrange", 3906, 3907);
+  Codec<Range<Integer>> INT4RANGE =
+      new RangeCodec<>(INT4, Comparator.naturalOrder(), "int4range", 3904, 3905);
+  Codec<Range<Long>> INT8RANGE =
+      new RangeCodec<>(INT8, Comparator.naturalOrder(), "int8range", 3926, 3927);
+  Codec<Range<java.math.BigDecimal>> NUMRANGE =
+      new RangeCodec<>(NUMERIC, Comparator.naturalOrder(), "numrange", 3906, 3907);
   Codec<Range<java.time.LocalDateTime>> TSRANGE =
-      new RangeCodec<>(TIMESTAMP, "tsrange", 3908, 3909);
+      new RangeCodec<>(TIMESTAMP, Comparator.naturalOrder(), "tsrange", 3908, 3909);
   Codec<Range<java.time.Instant>> TSTZRANGE =
-      new RangeCodec<>(TIMESTAMPTZ, "tstzrange", 3910, 3911);
-  Codec<Range<java.time.LocalDate>> DATERANGE = new RangeCodec<>(DATE, "daterange", 3912, 3913);
+      new RangeCodec<>(TIMESTAMPTZ, Comparator.naturalOrder(), "tstzrange", 3910, 3911);
+  Codec<Range<java.time.LocalDate>> DATERANGE =
+      new RangeCodec<>(DATE, Comparator.naturalOrder(), "daterange", 3912, 3913);
   Codec<Multirange<Integer>> INT4MULTIRANGE =
-      new MultirangeCodec<>(INT4RANGE, "int4multirange", 4451, 6150);
+      new MultirangeCodec<>(
+          INT4RANGE, INT4, Comparator.naturalOrder(), "int4multirange", 4451, 6150);
   Codec<Multirange<Long>> INT8MULTIRANGE =
-      new MultirangeCodec<>(INT8RANGE, "int8multirange", 4536, 6157);
+      new MultirangeCodec<>(
+          INT8RANGE, INT8, Comparator.naturalOrder(), "int8multirange", 4536, 6157);
   Codec<Multirange<java.math.BigDecimal>> NUMMULTIRANGE =
-      new MultirangeCodec<>(NUMRANGE, "nummultirange", 4532, 6151);
+      new MultirangeCodec<>(
+          NUMRANGE, NUMERIC, Comparator.naturalOrder(), "nummultirange", 4532, 6151);
   Codec<Multirange<java.time.LocalDateTime>> TSMULTIRANGE =
-      new MultirangeCodec<>(TSRANGE, "tsmultirange", 4533, 6152);
+      new MultirangeCodec<>(
+          TSRANGE, TIMESTAMP, Comparator.naturalOrder(), "tsmultirange", 4533, 6152);
   Codec<Multirange<java.time.Instant>> TSTZMULTIRANGE =
-      new MultirangeCodec<>(TSTZRANGE, "tstzmultirange", 4534, 6153);
+      new MultirangeCodec<>(
+          TSTZRANGE, TIMESTAMPTZ, Comparator.naturalOrder(), "tstzmultirange", 4534, 6153);
   Codec<Multirange<java.time.LocalDate>> DATEMULTIRANGE =
-      new MultirangeCodec<>(DATERANGE, "datemultirange", 4535, 6155);
+      new MultirangeCodec<>(
+          DATERANGE, DATE, Comparator.naturalOrder(), "datemultirange", 4535, 6155);
 
   /**
    * Returns a codec for PostgreSQL {@code bit(n)} — a fixed-length bit string of exactly {@code n}

@@ -3,6 +3,7 @@ package io.codemine.postgresql.codecs;
 import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
 
@@ -15,12 +16,22 @@ import java.util.Random;
 final class MultirangeCodec<A> implements Codec<Multirange<A>> {
 
   private final Codec<Range<A>> rangeCodec;
+  private final Codec<A> elementCodec;
+  private final Comparator<A> comparator;
   private final String typeName;
   private final int scalarOid;
   private final int arrayOid;
 
-  MultirangeCodec(Codec<Range<A>> rangeCodec, String typeName, int scalarOid, int arrayOid) {
+  MultirangeCodec(
+      Codec<Range<A>> rangeCodec,
+      Codec<A> elementCodec,
+      Comparator<A> comparator,
+      String typeName,
+      int scalarOid,
+      int arrayOid) {
     this.rangeCodec = rangeCodec;
+    this.elementCodec = elementCodec;
+    this.comparator = comparator;
     this.typeName = typeName;
     this.scalarOid = scalarOid;
     this.arrayOid = arrayOid;
@@ -132,11 +143,44 @@ final class MultirangeCodec<A> implements Codec<Multirange<A>> {
     if (size == 0) {
       return new Multirange<>(List.of());
     }
-    int numRanges = r.nextInt(Math.min(size, 5) + 1);
-    List<Range<A>> ranges = new ArrayList<>(numRanges);
-    for (int i = 0; i < numRanges; i++) {
-      ranges.add(rangeCodec.random(r, size));
+
+    // Generate up to 3 non-overlapping, non-adjacent ranges.
+    //
+    // Strategy: generate a pool of distinct sorted candidate values, then
+    // take pairs with a one-value gap between successive ranges:
+    //   range0 = [cands[0], cands[1])
+    //   range1 = [cands[3], cands[4])   ← cands[2] acts as the gap
+    //   ...
+    // Because the candidates are strictly sorted (duplicates removed), each
+    // range's upper bound is less than the next range's lower bound, which
+    // guarantees PostgreSQL won't merge or reorder them.
+    int numRanges = r.nextInt(3) + 1;
+    int needed = numRanges * 2 + (numRanges - 1); // 2 bounds per range + gap between ranges
+
+    // Generate a generous pool so there are enough distinct values after dedup.
+    int poolSize = needed * 4;
+    List<A> pool = new ArrayList<>(poolSize);
+    for (int i = 0; i < poolSize; i++) {
+      pool.add(elementCodec.random(r, size));
     }
+
+    // Sort and remove consecutive duplicates.
+    pool.sort(comparator);
+    List<A> distinct = new ArrayList<>(poolSize);
+    for (A v : pool) {
+      if (distinct.isEmpty() || comparator.compare(distinct.get(distinct.size() - 1), v) != 0) {
+        distinct.add(v);
+      }
+    }
+
+    // Build ranges from the sorted distinct values.
+    List<Range<A>> ranges = new ArrayList<>(numRanges);
+    int idx = 0;
+    while (ranges.size() < numRanges && idx + 1 < distinct.size()) {
+      ranges.add(Range.bounded(distinct.get(idx), distinct.get(idx + 1)));
+      idx += 3; // skip one gap value before the next range
+    }
+
     return new Multirange<>(ranges);
   }
 
