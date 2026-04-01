@@ -22,7 +22,7 @@ Every codec is heavily tested against a live PostgreSQL instance using both pgjd
 
 ## Installation
 
-The package is published to GitHub Packages under `io.codemine.java.postgresql:codecs`.
+The package is published to Maven Central under `io.codemine.java.postgresql:codecs`.
 
 ```xml
 <dependency>
@@ -30,17 +30,6 @@ The package is published to GitHub Packages under `io.codemine.java.postgresql:c
     <artifactId>codecs</artifactId>
     <version>0.1.0</version>
 </dependency>
-```
-
-Add the GitHub Packages repository to your `pom.xml`:
-
-```xml
-<repositories>
-    <repository>
-        <id>github</id>
-        <url>https://maven.pkg.github.com/codemine-io/postgresql-codecs.java</url>
-    </repository>
-</repositories>
 ```
 
 ## Supported types

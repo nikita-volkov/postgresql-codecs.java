@@ -4,26 +4,48 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Semver version to publish (e.g., 1.0.0)
+        description: Semver version to publish (e.g., 1.2.3)
         required: true
         type: string
+  workflow_call:
+    inputs:
+      version:
+        description: Semver version to publish (e.g., 1.2.3)
+        required: true
+        type: string
+    secrets:
+      MAVEN_CENTRAL_USERNAME:
+        required: true
+      MAVEN_CENTRAL_PASSWORD:
+        required: true
+      MAVEN_GPG_PRIVATE_KEY:
+        required: true
+      MAVEN_GPG_PASSPHRASE:
+        required: true
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
 
 jobs:
-  publish:
+  validate-version:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: write
-
     steps:
       - name: Validate SemVer version format
         run: |
-          if ! echo "${{ inputs.version }}" | grep -qE '^[0-9]+(\.[0-9]+)+$'
+          if ! echo "${{ inputs.version }}" | grep -qE '^[0-9]+(\.[0-9]+)+'
           then
             echo "Error: '${{ inputs.version }}' is not a valid SemVer version (expected e.g. 1.2.3)"
             exit 1
           fi
 
+  release:
+    needs: validate-version
+    runs-on: ubuntu-latest
+    steps:
       - uses: actions/checkout@v6
 
       - name: Set up JDK 21
@@ -32,17 +54,22 @@ jobs:
           java-version: '21'
           distribution: temurin
           cache: maven
-          server-id: github
-          server-username: GITHUB_ACTOR
-          server-password: GITHUB_TOKEN
+          server-id: central
+          server-username: MAVEN_CENTRAL_USERNAME
+          server-password: MAVEN_CENTRAL_PASSWORD
 
       - name: Set version
         run: mvn versions:set -DnewVersion=${{ inputs.version }} -DgenerateBackupPoms=false
 
-      - name: Publish to GitHub Packages
-        run: mvn --batch-mode deploy -DskipTests
+      - name: Import GPG key
+        run: echo "${{ secrets.MAVEN_GPG_PRIVATE_KEY }}" | gpg --batch --import
+
+      - name: Build, test, and publish to Maven Central
+        run: mvn --batch-mode deploy -P release -DskipTests
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+          MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
 
       - name: Commit the version update
         id: commit
