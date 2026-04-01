@@ -39,15 +39,6 @@ jobs:
       - name: Set version
         run: mvn versions:set -DnewVersion=${{ inputs.version }} -DgenerateBackupPoms=false
 
-      - name: Generate documentation site
-        run: mvn site -DskipTests
-
-      - name: Deploy documentation to /v${{ inputs.version }}
-        uses: ./.github/actions/deploy-docs
-        with:
-          subdirectory: v${{ inputs.version }}
-          token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Publish to GitHub Packages
         run: mvn --batch-mode deploy -DskipTests
         env:

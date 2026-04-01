@@ -2,16 +2,18 @@ name: Pages
 
 on:
   push:
-    branches: [gh-pages]
+    branches: [master]
   workflow_run:
-    workflows: [CI, CD]
+    workflows: [CD]
     types: [completed]
+  workflow_dispatch:
 
 jobs:
   deploy:
-    if: ${{ github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       pages: write
       id-token: write
     environment:
@@ -21,27 +23,49 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: gh-pages
+          fetch-depth: 0
 
-      - name: Generate index.html
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      - name: Build all documentation
         run: |
           set -euo pipefail
 
+          DOCS_DIR="$RUNNER_TEMP/docs"
+          mkdir -p "$DOCS_DIR"
           REPO_NAME="${GITHUB_REPOSITORY#*/}"
 
-          # Build version list items for mvn and javadoc sections
-          MVN_ITEMS=""
-          JAVADOC_ITEMS=""
-          if [ -d "latest" ]; then
-            MVN_ITEMS+='<li><a href="latest/">latest <span class="badge">development</span></a></li>'
-            JAVADOC_ITEMS+='<li><a href="latest/apidocs/">latest <span class="badge">development</span></a></li>'
-          fi
-          for dir in $(find . -maxdepth 1 -type d -regex '\./v[0-9].*' | sed 's|^\./||' | sort -V -r); do
-            MVN_ITEMS+="<li><a href=\"${dir}/\">${dir}</a></li>"
-            JAVADOC_ITEMS+="<li><a href=\"${dir}/apidocs/\">${dir}</a></li>"
-          done
+          # Build docs for latest (master HEAD)
+          mvn clean site -DskipTests -q
+          cp -r target/site "$DOCS_DIR/latest"
 
-          cat > index.html <<ENDOFPAGE
+          # Get all SemVer tags sorted in descending order
+          TAGS=$(git tag | grep -E '^v[0-9]+(\.[0-9]+)+$' | sort -V -r)
+
+          # Build docs for each SemVer tag
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            git checkout "$tag"
+            mvn clean site -DskipTests -q
+            cp -r target/site "$DOCS_DIR/$tag"
+          done <<< "$TAGS"
+
+          # Build version list items (latest first, then versions descending)
+          MVN_ITEMS='<li><a href="latest/">latest <span class="badge">development</span></a></li>'
+          JAVADOC_ITEMS='<li><a href="latest/apidocs/">latest <span class="badge">development</span></a></li>'
+
+          while IFS= read -r tag; do
+            [ -z "$tag" ] && continue
+            MVN_ITEMS+="<li><a href=\"${tag}/\">${tag}</a></li>"
+            JAVADOC_ITEMS+="<li><a href=\"${tag}/apidocs/\">${tag}</a></li>"
+          done <<< "$TAGS"
+
+          cat > "$DOCS_DIR/index.html" <<ENDOFPAGE
           <!DOCTYPE html>
           <html lang="en">
           <head>
@@ -70,11 +94,11 @@ jobs:
             background: var(--bg-alt);
             box-shadow: 0 1px 2px rgba(0,0,0,.1);
           }
-          nav .logo { 
+          nav .logo {
             font-size: 1.5rem;
             color: var(--fg);
           }
-          :is(nav, h1) a { 
+          :is(nav, h1) a {
             color: inherit;
             text-decoration: inherit;
           }
@@ -162,7 +186,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: ${{ runner.temp }}/docs
 
       - name: Deploy to GitHub Pages
         id: deployment
