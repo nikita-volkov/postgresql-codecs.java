@@ -1,4 +1,4 @@
-package io.codemine.postgresql;
+package io.codemine.java.postgresql;
 
 import io.codemine.java.postgresql.codecs.Codec.DecodingException;
 import io.netty.buffer.Unpooled;

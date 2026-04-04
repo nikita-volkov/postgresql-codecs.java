@@ -1,4 +1,4 @@
-package io.codemine.postgresql;
+package io.codemine.java.postgresql;
 
 import io.codemine.java.postgresql.codecs.Codec.DecodingException;
 import io.netty.buffer.Unpooled;
@@ -6,32 +6,30 @@ import io.r2dbc.postgresql.client.EncodedParameter;
 import io.r2dbc.postgresql.codec.CodecMetadata;
 import io.r2dbc.postgresql.codec.PostgresTypeIdentifier;
 import io.r2dbc.postgresql.message.Format;
-import java.nio.charset.StandardCharsets;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Collections;
 import reactor.core.publisher.Mono;
 
 /**
  * Adapts a {@link io.codemine.java.postgresql.codecs.Codec} to the r2dbc-postgresql {@link
- * io.r2dbc.postgresql.codec.Codec} SPI using <b>binary format for parameter encoding</b> and
- * <b>text format for result decoding</b>.
- *
- * <p>Use this with a connection that does <em>not</em> have {@code forceBinary} enabled so that the
- * server returns columns in text format.
+ * io.r2dbc.postgresql.codec.Codec} SPI so that custom types can be encoded and decoded over the
+ * binary extended-query protocol.
  */
-public class BinaryInTextOutR2dbcCodec<A>
+public class BinaryInBinaryOutR2dbcCodec<A>
     implements io.r2dbc.postgresql.codec.Codec<A>, CodecMetadata {
 
   private final io.codemine.java.postgresql.codecs.Codec<A> codec;
   private final Class<A> type;
 
-  public BinaryInTextOutR2dbcCodec(
+  public BinaryInBinaryOutR2dbcCodec(
       io.codemine.java.postgresql.codecs.Codec<A> codec, Class<A> type) {
     this.codec = codec;
     this.type = type;
   }
 
   // -----------------------------------------------------------------------
-  // Encoding (binary)
+  // Encoding
   // -----------------------------------------------------------------------
 
   @Override
@@ -75,7 +73,7 @@ public class BinaryInTextOutR2dbcCodec<A>
 
   @Override
   public Iterable<Format> getFormats() {
-    return Collections.singletonList(Format.FORMAT_TEXT);
+    return Collections.singletonList(Format.FORMAT_BINARY);
   }
 
   @Override
@@ -84,12 +82,12 @@ public class BinaryInTextOutR2dbcCodec<A>
   }
 
   // -----------------------------------------------------------------------
-  // Decoding (text)
+  // Decoding
   // -----------------------------------------------------------------------
 
   @Override
   public boolean canDecode(int dataType, Format format, Class<?> requestedType) {
-    return format == Format.FORMAT_TEXT && requestedType.isAssignableFrom(type);
+    return format == Format.FORMAT_BINARY && requestedType.isAssignableFrom(type);
   }
 
   @Override
@@ -103,9 +101,8 @@ public class BinaryInTextOutR2dbcCodec<A>
     }
     byte[] bytes = new byte[buffer.readableBytes()];
     buffer.readBytes(bytes);
-    String text = new String(bytes, StandardCharsets.UTF_8);
     try {
-      return codec.decodeInText(text, 0).value;
+      return codec.decodeInBinary(ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN), bytes.length);
     } catch (DecodingException e) {
       throw new RuntimeException(e);
     }

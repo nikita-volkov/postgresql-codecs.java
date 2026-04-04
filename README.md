@@ -209,7 +209,7 @@ arr.setValue(arrayCodec.encodeInTextToString(List.of(1, 2, 3)));
 In [`./src/test/java/io/codemine/postgresql/BinaryInBinaryOutR2dbcCodec.java`](./src/test/java/io/codemine/postgresql/BinaryInBinaryOutR2dbcCodec.java) you'll find an adapter that integrates `Codec<A>` with r2dbc-postgresql's `Codec` interface using binary serialization format. You can bundle it into your codebase and register using `codecRegistrar`.
 
 ```java
-import io.codemine.postgresql.BinaryInBinaryOutR2dbcCodec;
+import io.codemine.java.postgresql.BinaryInBinaryOutR2dbcCodec;
 import io.codemine.java.postgresql.codecs.Codec;
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
 import io.r2dbc.postgresql.PostgresqlConnectionFactory;

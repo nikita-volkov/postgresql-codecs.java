@@ -3,12 +3,12 @@ package io.codemine.java.postgresql.codecs;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.codemine.java.postgresql.TextInBinaryOutR2dbcCodec;
+import io.codemine.java.postgresql.TextInTextOutR2dbcCodec;
 import io.codemine.java.postgresql.codecs.CompositeCodecTest.AnnotatedSegment;
 import io.codemine.java.postgresql.codecs.CompositeCodecTest.Point;
 import io.codemine.java.postgresql.codecs.CompositeCodecTest.Segment;
 import io.codemine.java.postgresql.codecs.CompositeCodecTest.TaggedData;
-import io.codemine.postgresql.TextInBinaryOutR2dbcCodec;
-import io.codemine.postgresql.TextInTextOutR2dbcCodec;
 import io.r2dbc.postgresql.PostgresqlConnectionConfiguration;
 import io.r2dbc.postgresql.PostgresqlConnectionFactory;
 import io.r2dbc.spi.Connection;

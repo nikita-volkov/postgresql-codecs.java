@@ -1,4 +1,4 @@
-package io.codemine.postgresql;
+package io.codemine.java.postgresql;
 
 import io.codemine.java.postgresql.codecs.Codec.DecodingException;
 import io.netty.buffer.Unpooled;
@@ -12,25 +12,26 @@ import reactor.core.publisher.Mono;
 
 /**
  * Adapts a {@link io.codemine.java.postgresql.codecs.Codec} to the r2dbc-postgresql {@link
- * io.r2dbc.postgresql.codec.Codec} SPI using the <b>text wire format for both parameter encoding
- * and result decoding</b>.
+ * io.r2dbc.postgresql.codec.Codec} SPI using <b>binary format for parameter encoding</b> and
+ * <b>text format for result decoding</b>.
  *
  * <p>Use this with a connection that does <em>not</em> have {@code forceBinary} enabled so that the
  * server returns columns in text format.
  */
-public class TextInTextOutR2dbcCodec<A>
+public class BinaryInTextOutR2dbcCodec<A>
     implements io.r2dbc.postgresql.codec.Codec<A>, CodecMetadata {
 
   private final io.codemine.java.postgresql.codecs.Codec<A> codec;
   private final Class<A> type;
 
-  public TextInTextOutR2dbcCodec(io.codemine.java.postgresql.codecs.Codec<A> codec, Class<A> type) {
+  public BinaryInTextOutR2dbcCodec(
+      io.codemine.java.postgresql.codecs.Codec<A> codec, Class<A> type) {
     this.codec = codec;
     this.type = type;
   }
 
   // -----------------------------------------------------------------------
-  // Encoding
+  // Encoding (binary)
   // -----------------------------------------------------------------------
 
   @Override
@@ -52,16 +53,15 @@ public class TextInTextOutR2dbcCodec<A>
   @Override
   @SuppressWarnings("unchecked")
   public EncodedParameter encode(Object value, int dataType) {
-    StringBuilder sb = new StringBuilder();
-    codec.encodeInText(sb, (A) value);
-    byte[] bytes = sb.toString().getBytes(StandardCharsets.UTF_8);
+    byte[] bytes = codec.encodeInBinaryToBytes((A) value);
     return new EncodedParameter(
-        Format.FORMAT_TEXT, dataType, Mono.just(Unpooled.wrappedBuffer(bytes)));
+        Format.FORMAT_BINARY, dataType, Mono.just(Unpooled.wrappedBuffer(bytes)));
   }
 
   @Override
   public EncodedParameter encodeNull() {
-    return new EncodedParameter(Format.FORMAT_TEXT, codec.oid(), Mono.just(Unpooled.EMPTY_BUFFER));
+    return new EncodedParameter(
+        Format.FORMAT_BINARY, codec.oid(), Mono.just(Unpooled.EMPTY_BUFFER));
   }
 
   // -----------------------------------------------------------------------
@@ -84,7 +84,7 @@ public class TextInTextOutR2dbcCodec<A>
   }
 
   // -----------------------------------------------------------------------
-  // Decoding
+  // Decoding (text)
   // -----------------------------------------------------------------------
 
   @Override
