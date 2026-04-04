@@ -311,11 +311,7 @@ abstract class CodecITBase<A> {
       if (value != null) {
         PGobject obj = new PGobject();
         obj.setType(qualifiedCodecName(codec));
-        {
-          StringBuilder sb = new StringBuilder();
-          codec.encodeInText(sb, value);
-          obj.setValue(sb.toString());
-        }
+        obj.setValue(codec.encodeInTextToString(value));
         ps.setObject(1, obj);
       } else {
         ps.setNull(1, java.sql.Types.OTHER);
@@ -374,11 +370,7 @@ abstract class CodecITBase<A> {
       if (value != null) {
         PGobject obj = new PGobject();
         obj.setType(qualifiedCodecName(arrayCodec));
-        {
-          StringBuilder sb = new StringBuilder();
-          arrayCodec.encodeInText(sb, value);
-          obj.setValue(sb.toString());
-        }
+        obj.setValue(arrayCodec.encodeInTextToString(value));
         ps.setObject(1, obj);
       } else {
         ps.setNull(1, java.sql.Types.OTHER);
